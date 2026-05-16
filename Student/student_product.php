@@ -1,752 +1,278 @@
 <?php
-// ─── Sample product data (replace with your DB query) ───────────────────────
-$products = [
-  [
-    'id'              => 1,
-    'name'            => 'School Uniform (Boys)',
-    'description'     => 'Standard polo shirt with school emblem, durable and comfortable.',
-    'category'        => 'uniform',
-    'price'           => 350,
-    'markup_price'    => 380,
-    'stock_quantity'  => 24,
-    'image_url'       => '',
-    'sizes_available' => ['XS','S','M','L','XL','XXL'],
-  ],
-  [
-    'id'              => 2,
-    'name'            => 'School Uniform (Girls)',
-    'description'     => 'Pleated skirt set with school emblem, neat finish.',
-    'category'        => 'uniform',
-    'price'           => 370,
-    'markup_price'    => 400,
-    'stock_quantity'  => 18,
-    'image_url'       => '',
-    'sizes_available' => ['XS','S','M','L','XL'],
-  ],
-  [
-    'id'              => 3,
-    'name'            => 'ID Sling (Standard)',
-    'description'     => 'Adjustable lanyard with school logo print.',
-    'category'        => 'id_sling',
-    'price'           => 55,
-    'markup_price'    => 65,
-    'stock_quantity'  => 80,
-    'image_url'       => '',
-    'sizes_available' => [],
-  ],
-  [
-    'id'              => 4,
-    'name'            => 'Student Handbook 2025',
-    'description'     => 'Official student handbook for the current school year.',
-    'category'        => 'booklet',
-    'price'           => 90,
-    'markup_price'    => 100,
-    'stock_quantity'  => 0,
-    'image_url'       => '',
-    'sizes_available' => [],
-  ],
-  [
-    'id'              => 5,
-    'name'            => 'Ballpen Set (12 pcs)',
-    'description'     => 'Smooth-writing blue ballpens, school-issued.',
-    'category'        => 'school_supply',
-    'price'           => 60,
-    'markup_price'    => 70,
-    'stock_quantity'  => 150,
-    'image_url'       => '',
-    'sizes_available' => [],
-  ],
-  [
-    'id'              => 6,
-    'name'            => 'School Tote Bag',
-    'description'     => 'Canvas tote with school name print — eco-friendly.',
-    'category'        => 'merchandise',
-    'price'           => 120,
-    'markup_price'    => 140,
-    'stock_quantity'  => 45,
-    'image_url'       => '',
-    'sizes_available' => [],
-  ],
-  [
-    'id'              => 7,
-    'name'            => 'PE Uniform Set',
-    'description'     => 'Breathable PE shirt and jogging pants set.',
-    'category'        => 'uniform',
-    'price'           => 420,
-    'markup_price'    => 460,
-    'stock_quantity'  => 30,
-    'image_url'       => '',
-    'sizes_available' => ['S','M','L','XL','XXL'],
-  ],
-  [
-    'id'              => 8,
-    'name'            => 'Notebook (College Ruled)',
-    'description'     => '80-leaf spiral notebook, college ruled.',
-    'category'        => 'school_supply',
-    'price'           => 45,
-    'markup_price'    => 52,
-    'stock_quantity'  => 200,
-    'image_url'       => '',
-    'sizes_available' => [],
-  ],
+session_start();
+
+// ── Mock products (replace with real DB queries) ───────────────────────────
+$category_labels = [
+    'uniform'       => 'Uniforms',
+    'id_sling'      => 'ID Slings',
+    'booklet'       => 'Booklets',
+    'school_supply' => 'School Supplies',
+    'merchandise'   => 'Merchandise',
+    'other'         => 'Other',
 ];
 
-$categoryLabels = [
-  'uniform'       => 'Uniforms',
-  'id_sling'      => 'ID Slings',
-  'booklet'       => 'Booklets',
-  'school_supply' => 'School Supplies',
-  'merchandise'   => 'Merchandise',
-  'other'         => 'Other',
+$products = [
+    ['id'=>1,'name'=>'PE Uniform Set','description'=>'Official EVSU PE uniform. Includes shirt and shorts.','category'=>'uniform','price'=>450.00,'stock_quantity'=>40,'sizes_available'=>['XS','S','M','L','XL','XXL'],'image_url'=>''],
+    ['id'=>2,'name'=>'EVSU ID Sling','description'=>'Durable EVSU-branded ID sling with card holder.','category'=>'id_sling','price'=>85.00,'stock_quantity'=>120,'sizes_available'=>[],'image_url'=>''],
+    ['id'=>3,'name'=>'Laboratory Manual','description'=>'General Chemistry laboratory manual, 2026 edition.','category'=>'booklet','price'=>65.00,'stock_quantity'=>75,'sizes_available'=>[],'image_url'=>''],
+    ['id'=>4,'name'=>'Engineering Uniform','description'=>'Official EVSU College of Engineering polo shirt.','category'=>'uniform','price'=>380.00,'stock_quantity'=>25,'sizes_available'=>['S','M','L','XL','XXL'],'image_url'=>''],
+    ['id'=>5,'name'=>'EVSU Tote Bag','description'=>'Canvas tote bag with EVSU logo. Eco-friendly and durable.','category'=>'merchandise','price'=>120.00,'stock_quantity'=>60,'sizes_available'=>[],'image_url'=>''],
+    ['id'=>6,'name'=>'Ballpen Set (5pcs)','description'=>'Blue and black ballpens, smooth-writing.','category'=>'school_supply','price'=>35.00,'stock_quantity'=>200,'sizes_available'=>[],'image_url'=>''],
+    ['id'=>7,'name'=>'Nursing Uniform','description'=>'Official EVSU College of Nursing uniform set.','category'=>'uniform','price'=>520.00,'stock_quantity'=>18,'sizes_available'=>['XS','S','M','L','XL'],'image_url'=>''],
+    ['id'=>8,'name'=>'EVSU Lanyard','description'=>'Premium woven lanyard with safety clip.','category'=>'id_sling','price'=>55.00,'stock_quantity'=>0,'sizes_available'=>[],'image_url'=>''],
 ];
+
+// Active filter from GET
+$active_category = $_GET['category'] ?? 'all';
+$search_query    = $_GET['search']   ?? '';
+
+// Filter products
+$filtered = array_filter($products, function($p) use ($active_category, $search_query) {
+    $match_cat    = ($active_category === 'all') || ($p['category'] === $active_category);
+    $match_search = empty($search_query) ||
+        stripos($p['name'], $search_query) !== false ||
+        stripos($p['description'], $search_query) !== false;
+    return $match_cat && $match_search;
+});
+
+$cart_count = $_SESSION['cart_count'] ?? 3; // replace with real cart count
+$user_name  = $_SESSION['user_name'] ?? 'Student';
+$first_name = explode(' ', $user_name)[0];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>IGP Product Catalog</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-  <style>
-    /* ── Reset & Tokens ─────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --primary:      #1a56db;
-      --primary-dk:   #1447b5;
-      --primary-lt:   #e8effd;
-      --accent:       #f59e0b;
-      --surface:      #ffffff;
-      --surface-2:    #f4f6fb;
-      --border:       #e2e8f0;
-      --text:         #1e293b;
-      --text-muted:   #64748b;
-      --success:      #16a34a;
-      --danger:       #dc2626;
-      --radius:       12px;
-      --radius-sm:    8px;
-      --shadow:       0 4px 20px rgba(26,86,219,.08);
-      --shadow-hover: 0 8px 32px rgba(26,86,219,.16);
-      --font:         'Sora', sans-serif;
-      --mono:         'DM Mono', monospace;
-    }
-
-    body {
-      font-family: var(--font);
-      background: var(--surface-2);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    /* ── Header ─────────────────────────────────────────────── */
-    .page-header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 28px 32px 24px;
-      display: flex;
-      align-items: flex-end;
-      gap: 16px;
-    }
-    .page-header-icon {
-      width: 48px; height: 48px;
-      background: var(--primary-lt);
-      border-radius: var(--radius-sm);
-      display: grid; place-items: center;
-      flex-shrink: 0;
-    }
-    .page-header-icon svg { color: var(--primary); }
-    .page-header h1 {
-      font-size: 1.5rem; font-weight: 700;
-      letter-spacing: -.02em; line-height: 1.1;
-    }
-    .page-header p { font-size: .875rem; color: var(--text-muted); margin-top: 2px; }
-
-    /* ── Main layout ─────────────────────────────────────────── */
-    .main { max-width: 1280px; margin: 0 auto; padding: 28px 24px 60px; }
-
-    /* ── Toolbar ─────────────────────────────────────────────── */
-    .toolbar {
-      display: flex; gap: 12px; flex-wrap: wrap;
-      margin-bottom: 24px;
-    }
-    .search-wrap {
-      position: relative; flex: 1; min-width: 220px;
-    }
-    .search-wrap svg {
-      position: absolute; left: 12px; top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted); pointer-events: none;
-    }
-    .search-wrap input {
-      width: 100%; padding: 10px 14px 10px 38px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      font-family: var(--font); font-size: .9rem;
-      color: var(--text); outline: none;
-      transition: border-color .18s;
-    }
-    .search-wrap input:focus { border-color: var(--primary); }
-
-    .cat-select {
-      padding: 10px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      font-family: var(--font); font-size: .9rem;
-      color: var(--text); cursor: pointer; outline: none;
-      transition: border-color .18s; min-width: 180px;
-    }
-    .cat-select:focus { border-color: var(--primary); }
-
-    /* ── Cart pill ───────────────────────────────────────────── */
-    .cart-pill {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 18px;
-      background: var(--primary); color: #fff;
-      border: none; border-radius: var(--radius-sm);
-      font-family: var(--font); font-size: .9rem; font-weight: 600;
-      cursor: pointer; transition: background .18s;
-      position: relative;
-    }
-    .cart-pill:hover { background: var(--primary-dk); }
-    .cart-count {
-      background: var(--accent); color: #1e293b;
-      font-family: var(--mono); font-size: .75rem; font-weight: 500;
-      border-radius: 99px; padding: 1px 7px;
-      min-width: 22px; text-align: center;
-    }
-
-    /* ── Results count ───────────────────────────────────────── */
-    .results-label {
-      font-size: .82rem; color: var(--text-muted);
-      font-family: var(--mono); margin-bottom: 16px;
-    }
-
-    /* ── Grid ────────────────────────────────────────────────── */
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 20px;
-    }
-
-    /* ── Card ────────────────────────────────────────────────── */
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      border: 1.5px solid var(--border);
-      overflow: hidden;
-      box-shadow: var(--shadow);
-      transition: box-shadow .22s, transform .22s;
-      display: flex; flex-direction: column;
-    }
-    .card:hover {
-      box-shadow: var(--shadow-hover);
-      transform: translateY(-3px);
-    }
-
-    .card-thumb {
-      width: 100%; height: 168px;
-      background: linear-gradient(135deg, var(--primary-lt) 0%, #dbeafe 100%);
-      display: flex; align-items: center; justify-content: center;
-      position: relative; overflow: hidden;
-    }
-    .card-thumb img {
-      width: 100%; height: 100%; object-fit: cover;
-    }
-    .card-thumb-icon { color: #93b4f0; }
-
-    .cat-badge {
-      position: absolute; top: 10px; right: 10px;
-      background: var(--primary); color: #fff;
-      font-size: .7rem; font-weight: 600; letter-spacing: .04em;
-      padding: 3px 10px; border-radius: 99px;
-      font-family: var(--mono); text-transform: uppercase;
-    }
-
-    .card-body { padding: 16px; flex: 1; display: flex; flex-direction: column; }
-
-    .card-name {
-      font-size: .95rem; font-weight: 700;
-      line-height: 1.2; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-    }
-    .card-desc {
-      font-size: .78rem; color: var(--text-muted);
-      margin-top: 5px; line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .card-meta {
-      display: flex; align-items: center;
-      justify-content: space-between;
-      margin-top: 12px;
-    }
-    .card-price {
-      font-size: 1.2rem; font-weight: 700;
-      color: var(--primary); font-family: var(--mono);
-    }
-    .card-stock {
-      font-size: .72rem; color: var(--text-muted);
-      font-family: var(--mono);
-    }
-    .card-stock.out { color: var(--danger); font-weight: 600; }
-
-    /* ── Size buttons ────────────────────────────────────────── */
-    .size-row {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      margin-top: 12px;
-    }
-    .size-btn {
-      padding: 4px 11px; font-size: .72rem;
-      border: 1.5px solid var(--border);
-      border-radius: 6px; background: var(--surface);
-      cursor: pointer; font-family: var(--mono);
-      color: var(--text); transition: all .15s;
-    }
-    .size-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .size-btn.active {
-      background: var(--primary); color: #fff;
-      border-color: var(--primary);
-    }
-
-    /* ── Add to cart button ──────────────────────────────────── */
-    .add-btn {
-      margin-top: auto; padding-top: 12px;
-    }
-    .add-btn button {
-      width: 100%; padding: 9px 0;
-      border: none; border-radius: var(--radius-sm);
-      background: var(--primary); color: #fff;
-      font-family: var(--font); font-size: .88rem; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center;
-      justify-content: center; gap: 6px;
-      transition: background .18s, transform .12s;
-    }
-    .add-btn button:hover:not(:disabled) {
-      background: var(--primary-dk); transform: scale(1.01);
-    }
-    .add-btn button:disabled {
-      background: var(--border); color: var(--text-muted);
-      cursor: not-allowed; transform: none;
-    }
-
-    /* ── Empty state ─────────────────────────────────────────── */
-    .empty {
-      text-align: center; padding: 80px 20px;
-      color: var(--text-muted);
-    }
-    .empty svg { margin: 0 auto 16px; display: block; opacity: .3; }
-    .empty h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); }
-    .empty p  { font-size: .875rem; margin-top: 6px; }
-
-    /* ── Toast ───────────────────────────────────────────────── */
-    #toast-container {
-      position: fixed; bottom: 24px; right: 24px;
-      display: flex; flex-direction: column; gap: 10px;
-      z-index: 9999;
-    }
-    .toast {
-      padding: 13px 20px; border-radius: var(--radius-sm);
-      font-size: .875rem; font-weight: 500;
-      box-shadow: 0 4px 20px rgba(0,0,0,.15);
-      animation: slideIn .25s ease;
-      display: flex; align-items: center; gap: 10px;
-      max-width: 300px;
-    }
-    .toast.success { background: var(--success); color: #fff; }
-    .toast.error   { background: var(--danger);  color: #fff; }
-    @keyframes slideIn {
-      from { opacity:0; transform: translateX(30px); }
-      to   { opacity:1; transform: translateX(0); }
-    }
-
-    /* ── Cart drawer ─────────────────────────────────────────── */
-    #cart-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(15,23,42,.45);
-      z-index: 100; backdrop-filter: blur(3px);
-    }
-    #cart-overlay.open { display: block; }
-
-    #cart-drawer {
-      position: fixed; top: 0; right: 0;
-      width: min(400px, 100vw); height: 100vh;
-      background: var(--surface);
-      box-shadow: -8px 0 40px rgba(0,0,0,.12);
-      z-index: 101;
-      display: flex; flex-direction: column;
-      transform: translateX(110%);
-      transition: transform .3s cubic-bezier(.4,0,.2,1);
-    }
-    #cart-drawer.open { transform: translateX(0); }
-
-    .drawer-head {
-      padding: 24px 20px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .drawer-head h2 { font-size: 1.1rem; font-weight: 700; }
-    .drawer-close {
-      background: none; border: none; cursor: pointer;
-      color: var(--text-muted); padding: 4px;
-      border-radius: 6px; transition: background .15s;
-    }
-    .drawer-close:hover { background: var(--surface-2); }
-
-    .drawer-body {
-      flex: 1; overflow-y: auto; padding: 16px 20px;
-    }
-    .cart-item {
-      display: flex; gap: 12px; align-items: center;
-      padding: 12px 0; border-bottom: 1px solid var(--border);
-    }
-    .cart-item-info { flex: 1; min-width: 0; }
-    .cart-item-name {
-      font-size: .88rem; font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .cart-item-meta {
-      font-size: .75rem; color: var(--text-muted);
-      font-family: var(--mono); margin-top: 2px;
-    }
-    .cart-item-price {
-      font-size: .9rem; font-weight: 700;
-      color: var(--primary); font-family: var(--mono); white-space: nowrap;
-    }
-    .cart-qty {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .qty-btn {
-      width: 28px; height: 28px; border-radius: 6px;
-      border: 1.5px solid var(--border); background: var(--surface);
-      cursor: pointer; display: grid; place-items: center;
-      font-size: 1rem; transition: all .15s; color: var(--text);
-    }
-    .qty-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .qty-val {
-      font-family: var(--mono); font-size: .85rem;
-      font-weight: 600; min-width: 18px; text-align: center;
-    }
-
-    .drawer-foot {
-      padding: 16px 20px 24px;
-      border-top: 1px solid var(--border);
-    }
-    .drawer-total {
-      display: flex; justify-content: space-between;
-      font-weight: 700; font-size: 1rem; margin-bottom: 14px;
-    }
-    .drawer-total span:last-child { font-family: var(--mono); color: var(--primary); }
-
-    .checkout-btn {
-      width: 100%; padding: 13px;
-      background: var(--primary); color: #fff;
-      border: none; border-radius: var(--radius-sm);
-      font-family: var(--font); font-size: .95rem; font-weight: 700;
-      cursor: pointer; transition: background .18s;
-    }
-    .checkout-btn:hover { background: var(--primary-dk); }
-
-    .cart-empty {
-      text-align: center; padding: 60px 0;
-      color: var(--text-muted); font-size: .9rem;
-    }
-
-    /* ── Responsive ──────────────────────────────────────────── */
-    @media (max-width: 600px) {
-      .page-header { padding: 20px 16px; }
-      .main { padding: 20px 14px 60px; }
-      .toolbar { gap: 8px; }
-    }
-  </style>
+  <title>Product Catalog — EVSU Reserve</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../CSS/student_dashboard.css"/>
+  <link rel="stylesheet" href="../CSS/student_product.css"/>
 </head>
 <body>
 
-<!-- ── Page header ───────────────────────────────────────── -->
-<header class="page-header">
-  <div class="page-header-icon">
-    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-    </svg>
-  </div>
-  <div>
-    <h1>Product Catalog</h1>
-    <p>Browse and order IGP products</p>
-  </div>
-</header>
-
-<!-- ── Main ──────────────────────────────────────────────── -->
-<main class="main">
-
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <div class="search-wrap">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input id="search" type="text" placeholder="Search products…" oninput="filterProducts()"/>
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+      </div>
+      <div>
+        <span class="logo-name">EVSU</span>
+        <span class="logo-sub">RESERVE</span>
+      </div>
     </div>
-
-    <select id="category" class="cat-select" onchange="filterProducts()">
-      <option value="all">All Categories</option>
-      <?php foreach ($categoryLabels as $key => $label): ?>
-        <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
-      <?php endforeach; ?>
-    </select>
-
-    <button class="cart-pill" onclick="openCart()">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-      </svg>
-      Cart <span class="cart-count" id="cart-count">0</span>
-    </button>
   </div>
-
-  <p class="results-label" id="results-label"></p>
-
-  <!-- Product grid (rendered by JS from PHP data) -->
-  <div id="grid" class="grid"></div>
-  <div id="empty" class="empty" style="display:none">
-    <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-    </svg>
-    <h3>No products found</h3>
-    <p>Try adjusting your search or filter.</p>
-  </div>
-
-</main>
-
-<!-- ── Cart drawer ────────────────────────────────────────── -->
-<div id="cart-overlay" onclick="closeCart()"></div>
-<aside id="cart-drawer">
-  <div class="drawer-head">
-    <h2>Your Cart</h2>
-    <button class="drawer-close" onclick="closeCart()" title="Close">
-      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M18 6 6 18M6 6l12 12"/>
-      </svg>
-    </button>
-  </div>
-  <div class="drawer-body" id="cart-body"></div>
-  <div class="drawer-foot" id="cart-foot" style="display:none">
-    <div class="drawer-total">
-      <span>Total</span><span id="cart-total">₱0</span>
-    </div>
-    <button class="checkout-btn">Proceed to Checkout</button>
+  <nav class="sidebar-nav">
+    <a href="student_dashboard.php" class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Dashboard
+    </a>
+    <a href="products.php" class="nav-item active">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Products
+    </a>
+    <a href="orders.php" class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
+      My Orders
+    </a>
+    <a href="cart.php" class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      Cart
+      <?php if ($cart_count > 0): ?>
+        <span class="nav-badge"><?= $cart_count ?></span>
+      <?php endif; ?>
+    </a>
+    <a href="profile.php" class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <a href="logout.php" class="nav-item nav-logout">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
   </div>
 </aside>
 
-<!-- ── Toast container ────────────────────────────────────── -->
-<div id="toast-container"></div>
+<!-- ══ MAIN ══════════════════════════════════════════════════════════════ -->
+<div class="main-wrap">
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-right">
+      <a href="cart.php" class="topbar-cart">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <?php if ($cart_count > 0): ?>
+          <span class="cart-dot"><?= $cart_count ?></span>
+        <?php endif; ?>
+      </a>
+      <div class="topbar-user">
+        <div class="user-avatar"><?= strtoupper(substr($first_name,0,1)) ?></div>
+        <span class="user-name"><?= htmlspecialchars($first_name) ?></span>
+      </div>
+    </div>
+  </header>
 
-<!-- ── PHP data → JS ──────────────────────────────────────── -->
-<script>
-const PRODUCTS = <?= json_encode($products, JSON_UNESCAPED_UNICODE) ?>;
-const CATEGORY_LABELS = <?= json_encode($categoryLabels, JSON_UNESCAPED_UNICODE) ?>;
+  <main class="page-content">
 
-// ── State ────────────────────────────────────────────────── //
-let cart = [];           // [{...product, qty, size}]
-let selectedSizes = {};  // {product_id: size}
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Product Catalog</h1>
+        <p class="page-sub">Browse and order IGP products</p>
+      </div>
+    </div>
 
-// ── Render grid ──────────────────────────────────────────── //
-function filterProducts() {
-  const q   = document.getElementById('search').value.toLowerCase();
-  const cat = document.getElementById('category').value;
+    <!-- Filters -->
+    <form method="GET" action="products.php" class="filters-bar" id="filter-form">
+      <div class="search-wrap">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="text"
+          name="search"
+          class="search-input"
+          placeholder="Search products..."
+          value="<?= htmlspecialchars($search_query) ?>"
+          oninput="this.form.submit()"
+        />
+      </div>
+      <div class="category-tabs">
+        <a href="products.php?category=all&search=<?= urlencode($search_query) ?>"
+           class="cat-tab <?= $active_category === 'all' ? 'active' : '' ?>">All</a>
+        <?php foreach ($category_labels as $key => $label): ?>
+          <a href="products.php?category=<?= $key ?>&search=<?= urlencode($search_query) ?>"
+             class="cat-tab <?= $active_category === $key ? 'active' : '' ?>"><?= $label ?></a>
+        <?php endforeach; ?>
+      </div>
+    </form>
 
-  const list = PRODUCTS.filter(p => {
-    const matchSearch = (p.name || '').toLowerCase().includes(q) ||
-                        (p.description || '').toLowerCase().includes(q);
-    const matchCat = cat === 'all' || p.category === cat;
-    return matchSearch && matchCat;
-  });
+    <!-- Result count -->
+    <p class="result-count">
+      Showing <strong><?= count($filtered) ?></strong> product<?= count($filtered) !== 1 ? 's' : '' ?>
+      <?php if ($active_category !== 'all'): ?>
+        in <strong><?= htmlspecialchars($category_labels[$active_category] ?? $active_category) ?></strong>
+      <?php endif; ?>
+    </p>
 
-  renderGrid(list);
-}
+    <!-- Products grid -->
+    <?php if (empty($filtered)): ?>
+      <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <p class="empty-title">No products found</p>
+        <p class="empty-sub">Try adjusting your search or filter.</p>
+        <a href="products.php" class="btn-shop btn-shop-sm">Clear Filters</a>
+      </div>
 
-function renderGrid(list) {
-  const grid  = document.getElementById('grid');
-  const empty = document.getElementById('empty');
-  const label = document.getElementById('results-label');
+    <?php else: ?>
+      <div class="products-grid" id="products-grid">
+        <?php foreach ($filtered as $product):
+          $cat_label = $category_labels[$product['category']] ?? $product['category'];
+          $in_stock  = ($product['stock_quantity'] ?? 0) > 0;
+          $has_sizes = !empty($product['sizes_available']);
+        ?>
+        <div class="product-card" data-id="<?= $product['id'] ?>">
 
-  label.textContent = `${list.length} product${list.length !== 1 ? 's' : ''} found`;
+          <!-- Image area -->
+          <div class="product-img-wrap">
+            <?php if (!empty($product['image_url'])): ?>
+              <img src="<?= htmlspecialchars($product['image_url']) ?>"
+                   alt="<?= htmlspecialchars($product['name']) ?>"
+                   class="product-img" />
+            <?php else: ?>
+              <div class="product-img-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+              </div>
+            <?php endif; ?>
 
-  if (list.length === 0) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
+            <span class="product-badge"><?= htmlspecialchars($cat_label) ?></span>
 
-  grid.innerHTML = list.map(p => {
-    const price = p.markup_price || p.price || 0;
-    const inStock = p.stock_quantity > 0;
-    const catLabel = CATEGORY_LABELS[p.category] || p.category;
-    const selSize = selectedSizes[p.id] || '';
-
-    const thumbHTML = p.image_url
-      ? `<img src="${escHtml(p.image_url)}" alt="${escHtml(p.name)}" loading="lazy"/>`
-      : `<svg class="card-thumb-icon" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-           <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-         </svg>`;
-
-    const sizesHTML = (p.sizes_available || []).length
-      ? `<div class="size-row">${p.sizes_available.map(s =>
-          `<button class="size-btn${selSize === s ? ' active' : ''}"
-            onclick="selectSize(${p.id}, '${escHtml(s)}')">${escHtml(s)}</button>`
-        ).join('')}</div>`
-      : '';
-
-    return `
-      <div class="card" id="card-${p.id}">
-        <div class="card-thumb">
-          ${thumbHTML}
-          <span class="cat-badge">${escHtml(catLabel)}</span>
-        </div>
-        <div class="card-body">
-          <div class="card-name" title="${escHtml(p.name)}">${escHtml(p.name)}</div>
-          <div class="card-desc">${escHtml(p.description || 'No description')}</div>
-          <div class="card-meta">
-            <span class="card-price">₱${price.toLocaleString()}</span>
-            <span class="card-stock${inStock ? '' : ' out'}">${inStock ? p.stock_quantity + ' in stock' : 'Out of stock'}</span>
+            <?php if (!$in_stock): ?>
+              <div class="out-of-stock-overlay">Out of Stock</div>
+            <?php endif; ?>
           </div>
-          ${sizesHTML}
-          <div class="add-btn">
-            <button onclick="addToCart(${p.id})" ${inStock ? '' : 'disabled'}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              ${inStock ? 'Add to Cart' : 'Out of Stock'}
+
+          <!-- Info -->
+          <div class="product-body">
+            <h3 class="product-name"><?= htmlspecialchars($product['name']) ?></h3>
+            <p class="product-desc"><?= htmlspecialchars($product['description'] ?: 'No description') ?></p>
+
+            <div class="product-meta">
+              <span class="product-price">₱<?= number_format($product['price'], 2) ?></span>
+              <span class="product-stock <?= $in_stock ? 'stock-ok' : 'stock-out' ?>">
+                <?= $in_stock ? $product['stock_quantity'] . ' in stock' : 'Out of stock' ?>
+              </span>
+            </div>
+
+            <!-- Size selector -->
+            <?php if ($has_sizes): ?>
+              <div class="size-selector">
+                <?php foreach ($product['sizes_available'] as $size): ?>
+                  <button type="button"
+                          class="size-btn"
+                          data-product="<?= $product['id'] ?>"
+                          data-size="<?= htmlspecialchars($size) ?>"
+                          onclick="selectSize(this)">
+                    <?= htmlspecialchars($size) ?>
+                  </button>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+
+            <!-- Add to Cart -->
+            <button
+              class="btn-add-cart <?= !$in_stock ? 'btn-disabled' : '' ?>"
+              <?= !$in_stock ? 'disabled' : '' ?>
+              onclick="addToCart(<?= $product['id'] ?>, '<?= htmlspecialchars($product['name']) ?>', <?= $product['price'] ?>, <?= $has_sizes ? 'true' : 'false' ?>)"
+            >
+              <?php if ($in_stock): ?>
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add to Cart
+              <?php else: ?>
+                Out of Stock
+              <?php endif; ?>
             </button>
           </div>
         </div>
-      </div>`;
-  }).join('');
-}
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
 
-// ── Size selection ────────────────────────────────────────── //
-function selectSize(productId, size) {
-  selectedSizes[productId] = size;
-  // Re-render just this card's size buttons
-  const card = document.getElementById(`card-${productId}`);
-  if (!card) return;
-  card.querySelectorAll('.size-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.trim() === size);
-  });
-}
+  </main>
+</div>
 
-// ── Add to cart ───────────────────────────────────────────── //
-function addToCart(productId) {
-  const product = PRODUCTS.find(p => p.id === productId);
-  if (!product) return;
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-  const needsSize = product.category === 'uniform' && (product.sizes_available || []).length > 0;
-  const size = selectedSizes[productId] || '';
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
 
-  if (needsSize && !size) {
-    showToast('Please select a size first', 'error');
-    return;
-  }
-
-  const key = `${productId}_${size}`;
-  const existing = cart.find(c => c._key === key);
-  if (existing) {
-    existing.qty++;
-  } else {
-    cart.push({
-      _key: key,
-      id: product.id,
-      name: product.name,
-      price: product.markup_price || product.price,
-      size,
-      qty: 1,
-      image_url: product.image_url || '',
-    });
-  }
-
-  updateCartUI();
-  showToast('Added to cart!', 'success');
-}
-
-// ── Cart UI ───────────────────────────────────────────────── //
-function updateCartUI() {
-  const totalQty = cart.reduce((s, c) => s + c.qty, 0);
-  document.getElementById('cart-count').textContent = totalQty;
-
-  const body = document.getElementById('cart-body');
-  const foot = document.getElementById('cart-foot');
-
-  if (cart.length === 0) {
-    body.innerHTML = `<div class="cart-empty">Your cart is empty.</div>`;
-    foot.style.display = 'none';
-    return;
-  }
-
-  foot.style.display = 'block';
-  let total = 0;
-  body.innerHTML = cart.map(item => {
-    total += item.price * item.qty;
-    return `
-      <div class="cart-item">
-        <div class="cart-item-info">
-          <div class="cart-item-name">${escHtml(item.name)}</div>
-          <div class="cart-item-meta">${item.size ? 'Size: ' + escHtml(item.size) + ' · ' : ''}₱${item.price.toLocaleString()} each</div>
-        </div>
-        <div class="cart-qty">
-          <button class="qty-btn" onclick="changeQty('${item._key}', -1)">−</button>
-          <span class="qty-val">${item.qty}</span>
-          <button class="qty-btn" onclick="changeQty('${item._key}', 1)">+</button>
-        </div>
-        <span class="cart-item-price">₱${(item.price * item.qty).toLocaleString()}</span>
-      </div>`;
-  }).join('');
-
-  document.getElementById('cart-total').textContent = '₱' + total.toLocaleString();
-}
-
-function changeQty(key, delta) {
-  const item = cart.find(c => c._key === key);
-  if (!item) return;
-  item.qty += delta;
-  if (item.qty <= 0) cart = cart.filter(c => c._key !== key);
-  updateCartUI();
-}
-
-function openCart()  {
-  document.getElementById('cart-overlay').classList.add('open');
-  document.getElementById('cart-drawer').classList.add('open');
-}
-function closeCart() {
-  document.getElementById('cart-overlay').classList.remove('open');
-  document.getElementById('cart-drawer').classList.remove('open');
-}
-
-// ── Toast ─────────────────────────────────────────────────── //
-function showToast(msg, type = 'success') {
-  const container = document.getElementById('toast-container');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-    ${type === 'success'
-      ? '<polyline points="20 6 9 17 4 12"/>'
-      : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'}
-  </svg>${escHtml(msg)}`;
-  container.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
-}
-
-// ── Utility ───────────────────────────────────────────────── //
-function escHtml(str) {
-  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ── Init ──────────────────────────────────────────────────── //
-renderGrid(PRODUCTS);
-</script>
+<script src="../JS/student_dashboard.js"></script>
+<script src="../JS/student_product.js"></script>
 </body>
 </html>
