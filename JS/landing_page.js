@@ -9,6 +9,7 @@
 function handleLogin() {
   // TODO: Change this to your actual login page URL
   window.location.href = '/login.php';
+  // window.location.href = '#features';
 }
 
 /* ── Sticky header shadow on scroll ── */
