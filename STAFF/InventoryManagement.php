@@ -78,97 +78,48 @@ $payment_config = [
     </div>
     <div class="staff-badge">STAFF</div>
   </div>
-
   <nav class="sidebar-nav">
-    <a href="staff_dashboard.php" class="nav-item active">
+    <a href="StaffDashboard.php" class="nav-item active">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
         <polyline points="9 22 9 12 15 12 15 22"/>
       </svg>
       Dashboard
     </a>
-
-    <div class="nav-section-label">ORDERS</div>
-    <a href="staff_orders.php" class="nav-item">
+    <a href="ProductManagement.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/>
-      </svg>
-      All Orders
-      <?php if ($pending_orders > 0): ?>
-        <span class="nav-badge"><?= $pending_orders ?></span>
-      <?php endif; ?>
-    </a>
-    <a href="staff_payments.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-        <line x1="1" y1="10" x2="23" y2="10"/>
-      </svg>
-      Payments
-    </a>
-
-    <div class="nav-section-label">INVENTORY</div>
-    <a href="staff_products.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
         <line x1="3" y1="6" x2="21" y2="6"/>
         <path d="M16 10a4 4 0 0 1-8 0"/>
       </svg>
       Products
-      <?php if ($low_stock_items > 0): ?>
-        <span class="nav-badge nav-badge-red"><?= $low_stock_items ?></span>
-      <?php endif; ?>
     </a>
-
-    <div class="nav-section-label">USERS</div>
-    <a href="staff_students.php" class="nav-item">
+    <a href="OrderManagement.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/>
       </svg>
-      Students
+      Orders
     </a>
-
-    <div class="nav-section-label">SYSTEM</div>
-    <a href="staff_reports.php" class="nav-item">
+    <a href="InventoryManagement.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73L13 2.27a2 2 0 0 0-2 0L4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
       </svg>
-      Reports
-    </a>
-    <a href="staff_settings.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-      Settings
+      Inventory
     </a>
   </nav>
 
   <div class="sidebar-bottom">
     <a href="logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
         <polyline points="16 17 21 12 16 7"/>
         <line x1="21" y1="12" x2="9" y2="12"/>
@@ -195,7 +146,7 @@ $payment_config = [
 
     <!-- Quick actions -->
     <div class="topbar-actions">
-      <a href="staff_orders.php?filter=pending" class="quick-action-btn">
+      <a href="OrderManagement.php?filter=pending" class="quick-action-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
              fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round">
@@ -227,7 +178,7 @@ $payment_config = [
         <p class="page-sub">Here's what's happening in EVSU Reserve today</p>
       </div>
       <div class="page-header-actions">
-        <a href="staff_products.php?action=add" class="btn-primary">
+        <a href="ProductManagement.php" class="btn-primary">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
@@ -324,7 +275,7 @@ $payment_config = [
       <div class="orders-card">
         <div class="orders-card-header">
           <h2 class="orders-title">Recent Orders</h2>
-          <a href="staff_orders.php" class="view-all-link">View all</a>
+          <a href="OrderManagement.php" class="view-all-link">View all</a>
         </div>
 
         <?php if (empty($recent_orders)): ?>
@@ -367,7 +318,7 @@ $payment_config = [
                   <td><span class="badge <?= $pc['class'] ?>"><?= $pc['label'] ?></span></td>
                   <td class="order-total text-right">₱<?= number_format($order['total'], 2) ?></td>
                   <td class="text-right">
-                    <a href="staff_order_detail.php?id=<?= urlencode($order['id']) ?>" class="action-link">View</a>
+                    <a href="OrderManagement.php?id=<?= urlencode($order['id']) ?>" class="action-link">View</a>
                   </td>
                 </tr>
                 <?php endforeach; ?>
@@ -423,7 +374,7 @@ $payment_config = [
                 <span class="title-badge"><?= $low_stock_items ?></span>
               <?php endif; ?>
             </h2>
-            <a href="staff_products.php?filter=low_stock" class="view-all-link">Manage</a>
+            <a href="ProductManagement.php?filter=low_stock" class="view-all-link">Manage</a>
           </div>
           <?php if (empty($low_stock_products)): ?>
             <div class="empty-state-sm">

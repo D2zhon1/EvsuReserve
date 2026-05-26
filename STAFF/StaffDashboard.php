@@ -234,9 +234,7 @@ $status_config = [
       <div class="orders-card">
         <div class="orders-card-header">
           <h2 class="orders-title">Recent Orders</h2>
-          <a href="staff_orders.php" class="view-all-link">View all</a>
-        </div>
-
+        <a href="OrderManagement.php" class="view-all-link">View all</a>
         <?php if (empty($recent_orders)): ?>
           <div class="empty-state">
             <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24"
@@ -318,7 +316,7 @@ $status_config = [
 
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-<script src="/Student/student_dashboard.php"></script>
+<script src="/JS/student_dashboard.js"></script>
 <script src="/JS/StaffDashboard.js"></script>
 </body>
 </html>

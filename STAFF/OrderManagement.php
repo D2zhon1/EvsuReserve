@@ -153,7 +153,7 @@ $orders_json = json_encode($orders);
   </div>
 
   <nav class="sidebar-nav">
-    <a href="/STAFF/StaffDashboard.php" class="nav-item">
+    <a href="StaffDashboard.php" class="nav-item active">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -161,19 +161,7 @@ $orders_json = json_encode($orders);
       </svg>
       Dashboard
     </a>
-
-   
-    <a href="/STAFF/OrderManagement.php" class="nav-item active">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/>
-      </svg>
-      All Orders
-    </a>
-    
-    <a href="/STAFF/ProductManagement.php" class="nav-item">
+    <a href="ProductManagement.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
@@ -182,36 +170,28 @@ $orders_json = json_encode($orders);
       </svg>
       Products
     </a>
-<a href="staff_payments.php" class="nav-item">
+    <a href="OrderManagement.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-        <line x1="1" y1="10" x2="23" y2="10"/>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/>
       </svg>
-      Payments
+      Orders
     </a>
+    <a href="InventoryManagement.php" class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73L13 2.27a2 2 0 0 0-2 0L4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      Inventory
+    </a>
+    
+  
    
-    <a href="staff_students.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-      Students
-    </a>
-
-   
-    <a href="staff_reports.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-      Reports
-    </a>
+    
   </nav>
 
   <div class="sidebar-bottom">
@@ -404,6 +384,7 @@ $orders_json = json_encode($orders);
   const ORDER_DATA = <?= $orders_json ?>;
   const STATUS_FLOW = <?= json_encode($status_flow) ?>;
 </script>
+<script src="/JS/student_dashboard.js"></script>
 <script src="/JS/StaffDashboard.js"></script>
 <script src="/JS/OrderManagement.js"></script>
 </body>
