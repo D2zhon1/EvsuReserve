@@ -1,24 +1,35 @@
 <?php
 session_start();
 
-$user_name  = $_SESSION['user_name']  ?? 'Maria Santos';
-$user_email = $_SESSION['user_email'] ?? 'maria.santos@evsu.edu.ph';
+require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/payments.php';
+
+$user_name  = $_SESSION['user_name']  ?? 'Cashier';
+$user_email = $_SESSION['user_email'] ?? '';
 $first_name = explode(' ', $user_name)[0];
 
-// ── Handle AJAX verify/reject action ─────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
 
     $payment_id = $_POST['payment_id'] ?? '';
-    $action     = $_POST['action'];      // 'verified' | 'rejected'
-    $order_id   = $_POST['order_id'] ?? '';
+    $action     = $_POST['action'];
+    $verifier   = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
 
-    // TODO: Replace with real DB update
-    // e.g. UPDATE payments SET status=?, verified_by=?, verification_date=NOW() WHERE id=?
-    // if ($action === 'verified') UPDATE orders SET payment_status='verified', status='paid' WHERE id=?
-
-    if (in_array($action, ['verified', 'rejected']) && $payment_id) {
-        echo json_encode(['success' => true, 'payment_id' => $payment_id, 'new_status' => $action]);
+    if (in_array($action, ['verified', 'rejected'], true) && $payment_id) {
+        $ok = evsu_verify_payment($conn, $payment_id, $action, $verifier);
+        if ($ok) {
+            evsu_log_activity(
+                $conn,
+                $action === 'verified' ? 'Payment Verified' : 'Payment Rejected',
+                $user_email,
+                'cashier',
+                "Payment {$payment_id} {$action}"
+            );
+            echo json_encode(['success' => true, 'payment_id' => $payment_id, 'new_status' => $action]);
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Payment not found']);
+        }
     } else {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -26,81 +37,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-// ── Filters from GET ──────────────────────────────────────────────────────
 $status_filter = $_GET['status'] ?? 'pending';
 $search        = trim($_GET['search'] ?? '');
 $valid_statuses = ['all', 'pending', 'verified', 'rejected'];
 if (!in_array($status_filter, $valid_statuses)) $status_filter = 'pending';
 
-// ── Mock payments (replace with real DB query) ────────────────────────────
-$all_payments = [
-    [
-        'id' => 'PAY-001', 'order_id' => 'ORD-001',
-        'order_number' => 'ORD-2026-0145', 'payer_name' => 'Juan dela Cruz',
-        'method' => 'GCash',        'amount' => 1250.00, 'status' => 'pending',
-        'reference_number' => 'GC-9812734', 'proof_url' => '',
-        'created_date' => '2026-05-16',
-    ],
-    [
-        'id' => 'PAY-002', 'order_id' => 'ORD-002',
-        'order_number' => 'ORD-2026-0146', 'payer_name' => 'Ana Reyes',
-        'method' => 'Cash',         'amount' => 350.00,  'status' => 'pending',
-        'reference_number' => '',   'proof_url' => '',
-        'created_date' => '2026-05-16',
-    ],
-    [
-        'id' => 'PAY-003', 'order_id' => 'ORD-003',
-        'order_number' => 'ORD-2026-0143', 'payer_name' => 'Carlo Mendoza',
-        'method' => 'PayMaya',      'amount' => 780.00,  'status' => 'verified',
-        'reference_number' => 'PM-4421098', 'proof_url' => '',
-        'created_date' => '2026-05-15',
-    ],
-    [
-        'id' => 'PAY-004', 'order_id' => 'ORD-004',
-        'order_number' => 'ORD-2026-0140', 'payer_name' => 'Liza Fernandez',
-        'method' => 'GCash',        'amount' => 2100.00, 'status' => 'verified',
-        'reference_number' => 'GC-7723001', 'proof_url' => '',
-        'created_date' => '2026-05-14',
-    ],
-    [
-        'id' => 'PAY-005', 'order_id' => 'ORD-005',
-        'order_number' => 'ORD-2026-0139', 'payer_name' => 'Mark Bautista',
-        'method' => 'Cash',         'amount' => 420.00,  'status' => 'rejected',
-        'reference_number' => '',   'proof_url' => '',
-        'created_date' => '2026-05-13',
-    ],
-    [
-        'id' => 'PAY-006', 'order_id' => 'ORD-006',
-        'order_number' => 'ORD-2026-0137', 'payer_name' => 'Grace Villanueva',
-        'method' => 'Bank Transfer', 'amount' => 960.00, 'status' => 'pending',
-        'reference_number' => 'BT-001-2026', 'proof_url' => '',
-        'created_date' => '2026-05-16',
-    ],
-    [
-        'id' => 'PAY-007', 'order_id' => 'ORD-007',
-        'order_number' => 'ORD-2026-0135', 'payer_name' => 'Paolo Cruz',
-        'method' => 'PayMaya',      'amount' => 550.00,  'status' => 'verified',
-        'reference_number' => 'PM-5500213', 'proof_url' => '',
-        'created_date' => '2026-05-12',
-    ],
-    [
-        'id' => 'PAY-008', 'order_id' => 'ORD-008',
-        'order_number' => 'ORD-2026-0134', 'payer_name' => 'Rica Morales',
-        'method' => 'GCash',        'amount' => 1800.00, 'status' => 'rejected',
-        'reference_number' => 'GC-1122334', 'proof_url' => '',
-        'created_date' => '2026-05-11',
-    ],
-];
+$all_payments = evsu_fetch_payments($conn, $status_filter, $search);
+foreach ($all_payments as &$p) {
+    $p['proof_url'] = $p['proof_url'] ?? '';
+    $p['created_date'] = date('Y-m-d', strtotime($p['created_date']));
+}
+unset($p);
 
-// ── Apply filters ─────────────────────────────────────────────────────────
-$filtered = array_filter($all_payments, function ($p) use ($status_filter, $search) {
-    $match_status = $status_filter === 'all' || $p['status'] === $status_filter;
-    $match_search = $search === '' ||
-        stripos($p['payer_name'],      $search) !== false ||
-        stripos($p['order_number'],    $search) !== false ||
-        stripos($p['reference_number'],$search) !== false;
-    return $match_status && $match_search;
-});
+$filtered = array_values($all_payments);
 
 // ── Status badge config ───────────────────────────────────────────────────
 $status_config = [
@@ -171,7 +120,7 @@ $status_config = [
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="logout.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

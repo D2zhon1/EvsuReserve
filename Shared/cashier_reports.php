@@ -1,49 +1,65 @@
 <?php
 session_start();
 
-// Mock user
-$user_name  = $_SESSION['user_name'] ?? 'Maria Santos';
+require_once __DIR__ . '/../database.php';
+
+$user_name  = $_SESSION['user_name'] ?? 'Cashier';
 $first_name = explode(' ', $user_name)[0];
 
-// ── Period filter ──────────────────────────────────────────────────────────
-$period = isset($_GET['period']) ? (int)$_GET['period'] : 30;
+$period = isset($_GET['period']) ? (int) $_GET['period'] : 30;
 $valid_periods = [7, 30, 90, 365];
-if (!in_array($period, $valid_periods)) $period = 30;
+if (!in_array($period, $valid_periods, true)) {
+    $period = 30;
+}
 
 $cutoff_date = date('Y-m-d', strtotime("-{$period} days"));
 $today       = date('Y-m-d');
 
-// ── Mock Orders (replace with real DB queries) ─────────────────────────────
-$all_orders = [
-    ['id' => 'ORD-001', 'payment_status' => 'verified', 'total_amount' => 1250.00, 'created_date' => date('Y-m-d', strtotime('-1 days')),  'items' => [['product_name' => 'PE Uniform', 'quantity' => 2, 'subtotal' => 800], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 450]]],
-    ['id' => 'ORD-002', 'payment_status' => 'pending',  'total_amount' => 350.00,  'created_date' => date('Y-m-d', strtotime('-2 days')),  'items' => [['product_name' => 'Laboratory Gown', 'quantity' => 1, 'subtotal' => 350]]],
-    ['id' => 'ORD-003', 'payment_status' => 'paid',     'total_amount' => 780.00,  'created_date' => date('Y-m-d', strtotime('-2 days')),  'items' => [['product_name' => 'PE Uniform', 'quantity' => 1, 'subtotal' => 400], ['product_name' => 'Polo Shirt', 'quantity' => 1, 'subtotal' => 380]]],
-    ['id' => 'ORD-004', 'payment_status' => 'verified', 'total_amount' => 2100.00, 'created_date' => date('Y-m-d', strtotime('-4 days')),  'items' => [['product_name' => 'Polo Shirt', 'quantity' => 3, 'subtotal' => 1140], ['product_name' => 'PE Uniform', 'quantity' => 2, 'subtotal' => 800], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 160]]],
-    ['id' => 'ORD-005', 'payment_status' => 'verified', 'total_amount' => 420.00,  'created_date' => date('Y-m-d', strtotime('-5 days')),  'items' => [['product_name' => 'Laboratory Gown', 'quantity' => 1, 'subtotal' => 350], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 70]]],
-    ['id' => 'ORD-006', 'payment_status' => 'paid',     'total_amount' => 960.00,  'created_date' => date('Y-m-d', strtotime('-6 days')),  'items' => [['product_name' => 'Polo Shirt', 'quantity' => 2, 'subtotal' => 760], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 200]]],
-    ['id' => 'ORD-007', 'payment_status' => 'verified', 'total_amount' => 550.00,  'created_date' => date('Y-m-d', strtotime('-8 days')),  'items' => [['product_name' => 'PE Uniform', 'quantity' => 1, 'subtotal' => 400], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 150]]],
-    ['id' => 'ORD-008', 'payment_status' => 'pending',  'total_amount' => 1800.00, 'created_date' => date('Y-m-d', strtotime('-10 days')), 'items' => [['product_name' => 'Polo Shirt', 'quantity' => 4, 'subtotal' => 1520], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 280]]],
-    ['id' => 'ORD-009', 'payment_status' => 'verified', 'total_amount' => 670.00,  'created_date' => date('Y-m-d', strtotime('-12 days')), 'items' => [['product_name' => 'Laboratory Gown', 'quantity' => 1, 'subtotal' => 350], ['product_name' => 'Polo Shirt', 'quantity' => 1, 'subtotal' => 320]]],
-    ['id' => 'ORD-010', 'payment_status' => 'paid',     'total_amount' => 1100.00, 'created_date' => date('Y-m-d', strtotime('-15 days')), 'items' => [['product_name' => 'PE Uniform', 'quantity' => 2, 'subtotal' => 800], ['product_name' => 'Laboratory Gown', 'quantity' => 1, 'subtotal' => 300]]],
-    ['id' => 'ORD-011', 'payment_status' => 'verified', 'total_amount' => 890.00,  'created_date' => date('Y-m-d', strtotime('-18 days')), 'items' => [['product_name' => 'Polo Shirt', 'quantity' => 2, 'subtotal' => 760], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 130]]],
-    ['id' => 'ORD-012', 'payment_status' => 'verified', 'total_amount' => 440.00,  'created_date' => date('Y-m-d', strtotime('-22 days')), 'items' => [['product_name' => 'Laboratory Gown', 'quantity' => 1, 'subtotal' => 350], ['product_name' => 'School ID', 'quantity' => 1, 'subtotal' => 90]]],
-];
+$all_orders = [];
+$stmt = $conn->prepare(
+    "SELECT order_number AS id, payment_status, total_amount, DATE(created_at) AS created_date, id AS order_pk
+     FROM orders WHERE DATE(created_at) >= ? ORDER BY created_at DESC"
+);
+$stmt->bind_param('s', $cutoff_date);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) {
+    $order_pk = (int) $row['order_pk'];
+    unset($row['order_pk']);
+    $row['total_amount'] = (float) $row['total_amount'];
 
-// ── Mock Payments ──────────────────────────────────────────────────────────
-$all_payments = [
-    ['method' => 'GCash',        'status' => 'verified', 'amount' => 1250.00, 'created_date' => date('Y-m-d', strtotime('-1 days'))],
-    ['method' => 'Cash',         'status' => 'pending',  'amount' => 350.00,  'created_date' => date('Y-m-d', strtotime('-2 days'))],
-    ['method' => 'PayMaya',      'status' => 'verified', 'amount' => 780.00,  'created_date' => date('Y-m-d', strtotime('-2 days'))],
-    ['method' => 'GCash',        'status' => 'verified', 'amount' => 2100.00, 'created_date' => date('Y-m-d', strtotime('-4 days'))],
-    ['method' => 'Cash',         'status' => 'verified', 'amount' => 420.00,  'created_date' => date('Y-m-d', strtotime('-5 days'))],
-    ['method' => 'Bank Transfer','status' => 'verified', 'amount' => 960.00,  'created_date' => date('Y-m-d', strtotime('-6 days'))],
-    ['method' => 'PayMaya',      'status' => 'verified', 'amount' => 550.00,  'created_date' => date('Y-m-d', strtotime('-8 days'))],
-    ['method' => 'GCash',        'status' => 'rejected', 'amount' => 1800.00, 'created_date' => date('Y-m-d', strtotime('-10 days'))],
-    ['method' => 'Cash',         'status' => 'verified', 'amount' => 670.00,  'created_date' => date('Y-m-d', strtotime('-12 days'))],
-    ['method' => 'GCash',        'status' => 'verified', 'amount' => 1100.00, 'created_date' => date('Y-m-d', strtotime('-15 days'))],
-    ['method' => 'Bank Transfer','status' => 'verified', 'amount' => 890.00,  'created_date' => date('Y-m-d', strtotime('-18 days'))],
-    ['method' => 'PayMaya',      'status' => 'verified', 'amount' => 440.00,  'created_date' => date('Y-m-d', strtotime('-22 days'))],
-];
+    $items = [];
+    $istmt = $conn->prepare(
+        'SELECT product_name, quantity, subtotal FROM order_items WHERE order_id = ?'
+    );
+    $istmt->bind_param('i', $order_pk);
+    $istmt->execute();
+    $ires = $istmt->get_result();
+    while ($item = $ires->fetch_assoc()) {
+        $item['subtotal'] = (float) $item['subtotal'];
+        $item['quantity'] = (int) $item['quantity'];
+        $items[] = $item;
+    }
+    $istmt->close();
+
+    $row['items'] = $items;
+    $all_orders[] = $row;
+}
+$stmt->close();
+
+$all_payments = [];
+$stmt = $conn->prepare(
+    "SELECT method, status, amount, DATE(created_at) AS created_date
+     FROM payments WHERE DATE(created_at) >= ? ORDER BY created_at DESC"
+);
+$stmt->bind_param('s', $cutoff_date);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) {
+    $row['amount'] = (float) $row['amount'];
+    $all_payments[] = $row;
+}
+$stmt->close();
 
 // ── Filter by period ───────────────────────────────────────────────────────
 $filtered_orders = array_filter($all_orders, fn($o) => $o['created_date'] >= $cutoff_date);
@@ -167,7 +183,7 @@ arsort($method_counts);
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="logout.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

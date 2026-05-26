@@ -1,71 +1,69 @@
 <?php
+require_once __DIR__ . '/database.php';
 
-include 'database.php';
+$register_error = '';
+$form_values = [
+    'student_id' => '',
+    'name'       => '',
+    'email'      => '',
+    'course'     => '',
+    'year_level' => '',
+];
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
-    // Safely get POST values
-    $student_id = trim($_POST['student_id'] ?? '');
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $course = trim($_POST['course'] ?? '');
-    $year_level = trim($_POST['year_level'] ?? '');
-    $password = $_POST['password'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $student_id   = trim($_POST['student_id'] ?? '');
+    $name         = trim($_POST['name'] ?? '');
+    $email        = trim($_POST['email'] ?? '');
+    $course       = trim($_POST['course'] ?? '');
+    $year_level   = trim($_POST['year_level'] ?? '');
+    $password     = $_POST['password'] ?? '';
     $confirm_pass = $_POST['confirm_pass'] ?? '';
 
-    // Check if fields are empty
-    if (
-        empty($student_id) ||
-        empty($name) ||
-        empty($email) ||
-        empty($course) ||
-        empty($year_level) ||
-        empty($password) ||
-        empty($confirm_pass)
-    ) {
-        die("Please fill in all fields.");
-    }
+    $form_values = compact('student_id', 'name', 'email', 'course', 'year_level');
 
-    // Check if passwords match
-    if ($password !== $confirm_pass) {
-        die("Passwords do not match.");
-    }
-
-    // Hash password
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-    // Insert query
-    $sql = "INSERT INTO users
-            (student_id, full_name, email, course, year_level, password)
-            VALUES
-            (?, ?, ?, ?, ?, ?)";
-
-    $stmt = $conn->prepare($sql);
-
-    if (!$stmt) {
-        die("Prepare failed: " . $conn->error);
-    }
-
-    $stmt->bind_param(
-        "ssssss",
-        $student_id,
-        $name,
-        $email,
-        $course,
-        $year_level,
-        $hashed_password
-    );
-
-    if ($stmt->execute()) {
-        echo "Registration successful!";
+    if ($student_id === '' || $name === '' || $email === '' || $course === '' || $year_level === '' || $password === '' || $confirm_pass === '') {
+        $register_error = 'Please fill in all fields.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $register_error = 'Please enter a valid email address.';
+    } elseif (strlen($password) < 8) {
+        $register_error = 'Password must be at least 8 characters.';
+    } elseif ($password !== $confirm_pass) {
+        $register_error = 'Passwords do not match.';
     } else {
-        echo "Error: " . $stmt->error;
+        $check = $conn->prepare('SELECT id FROM users WHERE student_id = ? OR email = ? LIMIT 1');
+        $check->bind_param('ss', $student_id, $email);
+        $check->execute();
+        $exists = $check->get_result()->num_rows > 0;
+        $check->close();
+
+        if ($exists) {
+            $register_error = 'Student ID or email is already registered.';
+        } else {
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+            $stmt = $conn->prepare(
+                "INSERT INTO users (student_id, full_name, email, course, year_level, password, role)
+                 VALUES (?, ?, ?, ?, ?, ?, 'student')"
+            );
+
+            if (!$stmt) {
+                $register_error = 'Database error. Please try again.';
+            } else {
+                $stmt->bind_param('ssssss', $student_id, $name, $email, $course, $year_level, $hashed_password);
+
+                if ($stmt->execute()) {
+                    evsu_log_activity($conn, 'User Registered', $email, 'student', "New account: {$student_id}");
+                    $stmt->close();
+                    header('Location: login_page.php?registered=1');
+                    exit;
+                }
+
+                $register_error = 'Registration failed: ' . $stmt->error;
+                $stmt->close();
+            }
+        }
     }
-
-    $stmt->close();
 }
-
-$conn->close();
 
 ?>
 
@@ -146,7 +144,11 @@ $conn->close();
       <h1 class="portal-title">EVSU RESERVE</h1>
       <h2 class="signin-heading">Create Account</h2>
 
-      <form novalidate id="register-form" action="login_page.php" method="POST">
+      <?php if ($register_error): ?>
+        <p style="color:#8b0000;margin-bottom:12px;font-size:14px;"><?= htmlspecialchars($register_error) ?></p>
+      <?php endif; ?>
+
+      <form novalidate id="register-form" action="register_page.php" method="POST">
 
         <!-- Row 1: Student ID + Full Name -->
         <div class="field-row">
@@ -158,6 +160,7 @@ $conn->close();
               name="student_id"
               placeholder="e.g. 2021-00001"
               autocomplete="off"
+              value="<?= htmlspecialchars($form_values['student_id']) ?>"
             />
           </div>
           <div class="field">
@@ -168,6 +171,7 @@ $conn->close();
               name="name"
               placeholder="Juan Dela Cruz"
               autocomplete="name"
+              value="<?= htmlspecialchars($form_values['name']) ?>"
             />
           </div>
         </div>
@@ -181,6 +185,7 @@ $conn->close();
             name="email"
             placeholder="yourname@evsu.edu.ph"
             autocomplete="email"
+            value="<?= htmlspecialchars($form_values['email']) ?>"
           />
         </div>
 
@@ -188,27 +193,28 @@ $conn->close();
         <div class="field-row">
           <div class="field">
             <label for="course">Course / Program</label>
-            <select id="course" name="course">
-              <option value="" disabled selected>Select course</option>
-              <option value="BSIT">BS Information Technology</option>
-              <option value="BSCS">BS Computer Science</option>
-              <option value="BSCE">BS Civil Engineering</option>
-              <option value="BSEE">BS Electrical Engineering</option>
-              <option value="BSME">BS Mechanical Engineering</option>
-              <option value="BSED">BS Education</option>
-              <option value="BSBA">BS Business Administration</option>
-              <option value="OTHER">Other</option>
+            <select id="course" name="course" required>
+              <option value="" disabled <?= $form_values['course'] === '' ? 'selected' : '' ?>>Select course</option>
+              <?php
+              $courses = ['BSIT' => 'BS Information Technology', 'BSCS' => 'BS Computer Science', 'BSCE' => 'BS Civil Engineering', 'BSEE' => 'BS Electrical Engineering', 'BSME' => 'BS Mechanical Engineering', 'BSED' => 'BS Education', 'BSBA' => 'BS Business Administration', 'OTHER' => 'Other'];
+              foreach ($courses as $val => $label):
+                  $sel = $form_values['course'] === $val ? 'selected' : '';
+              ?>
+              <option value="<?= htmlspecialchars($val) ?>" <?= $sel ?>><?= htmlspecialchars($label) ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
           <div class="field">
             <label for="year_level">Year Level</label>
-            <select id="year_level" name="year_level">
-              <option value="" disabled selected>Select year</option>
-              <option value="1">1st Year</option>
-              <option value="2">2nd Year</option>
-              <option value="3">3rd Year</option>
-              <option value="4">4th Year</option>
-              <option value="5">5th Year</option>
+            <select id="year_level" name="year_level" required>
+              <option value="" disabled <?= $form_values['year_level'] === '' ? 'selected' : '' ?>>Select year</option>
+              <?php
+              $year_labels = [1 => '1st Year', 2 => '2nd Year', 3 => '3rd Year', 4 => '4th Year', 5 => '5th Year'];
+              foreach ($year_labels as $y => $label):
+                  $sel = $form_values['year_level'] === (string) $y ? 'selected' : '';
+              ?>
+              <option value="<?= $y ?>" <?= $sel ?>><?= $label ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
         </div>
