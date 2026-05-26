@@ -1,14 +1,5 @@
 <?php
 
-$host = "localhost";
-$username = "root";
-$password = "";
-$database = "evsu_reserve";
+require_once __DIR__ . '/database/bootstrap.php';
 
-$conn = new mysqli($host, $username, $password, $database);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-?>
+$conn = evsu_db_connect();

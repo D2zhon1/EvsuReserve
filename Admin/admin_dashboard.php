@@ -1,55 +1,38 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/../database.php';
+
 $user_name  = $_SESSION['user_name']  ?? 'Admin User';
 $first_name = explode(' ', $user_name)[0];
 
-// ── Mock Data (replace with real DB queries) ───────────────────────────────
+$all_users = [];
+$res = $conn->query('SELECT id, full_name AS name, role FROM users ORDER BY id');
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['id'] = 'U' . str_pad($row['id'], 3, '0', STR_PAD_LEFT);
+        $all_users[] = $row;
+    }
+}
 
-$all_users = [
-    ['id' => 'U001', 'name' => 'Juan dela Cruz',    'role' => 'student'],
-    ['id' => 'U002', 'name' => 'Ana Reyes',          'role' => 'student'],
-    ['id' => 'U003', 'name' => 'Carlo Mendoza',      'role' => 'student'],
-    ['id' => 'U004', 'name' => 'Liza Fernandez',     'role' => 'student'],
-    ['id' => 'U005', 'name' => 'Mark Bautista',      'role' => 'student'],
-    ['id' => 'U006', 'name' => 'Grace Villanueva',   'role' => 'student'],
-    ['id' => 'U007', 'name' => 'Paolo Cruz',         'role' => 'student'],
-    ['id' => 'U008', 'name' => 'Rica Morales',       'role' => 'student'],
-    ['id' => 'U009', 'name' => 'Maria Santos',       'role' => 'cashier'],
-    ['id' => 'U010', 'name' => 'Jose Reyes',         'role' => 'cashier'],
-    ['id' => 'U011', 'name' => 'Carmen Lopez',       'role' => 'staff'],
-    ['id' => 'U012', 'name' => 'Ramon Torres',       'role' => 'staff'],
-    ['id' => 'U013', 'name' => 'Elena Garcia',       'role' => 'staff'],
-    ['id' => 'U014', 'name' => 'System Admin',       'role' => 'admin'],
-];
+$all_products = [];
+$res = $conn->query('SELECT id, name, category FROM products WHERE is_active = 1 ORDER BY id');
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['id'] = 'P' . str_pad($row['id'], 3, '0', STR_PAD_LEFT);
+        $all_products[] = $row;
+    }
+}
 
-$all_products = [
-    ['id' => 'P001', 'name' => 'PE Uniform',        'category' => 'uniform'],
-    ['id' => 'P002', 'name' => 'Polo Shirt',         'category' => 'uniform'],
-    ['id' => 'P003', 'name' => 'Laboratory Gown',    'category' => 'laboratory'],
-    ['id' => 'P004', 'name' => 'School ID',          'category' => 'identification'],
-    ['id' => 'P005', 'name' => 'Nursing Uniform',    'category' => 'uniform'],
-    ['id' => 'P006', 'name' => 'Safety Goggles',     'category' => 'laboratory'],
-    ['id' => 'P007', 'name' => 'Student Handbook',   'category' => 'publication'],
-    ['id' => 'P008', 'name' => 'College Pin',        'category' => 'identification'],
-    ['id' => 'P009', 'name' => 'Lab Manual',         'category' => 'publication'],
-    ['id' => 'P010', 'name' => 'Sports Jersey',      'category' => 'uniform'],
-];
-
-$all_orders = [
-    ['id' => 'ORD-001', 'status' => 'completed',  'payment_status' => 'verified', 'total_amount' => 1250.00],
-    ['id' => 'ORD-002', 'status' => 'pending',    'payment_status' => 'pending',  'total_amount' => 350.00],
-    ['id' => 'ORD-003', 'status' => 'processing', 'payment_status' => 'pending',  'total_amount' => 780.00],
-    ['id' => 'ORD-004', 'status' => 'completed',  'payment_status' => 'paid',     'total_amount' => 2100.00],
-    ['id' => 'ORD-005', 'status' => 'cancelled',  'payment_status' => 'refunded', 'total_amount' => 420.00],
-    ['id' => 'ORD-006', 'status' => 'paid',       'payment_status' => 'verified', 'total_amount' => 960.00],
-    ['id' => 'ORD-007', 'status' => 'ready',      'payment_status' => 'verified', 'total_amount' => 550.00],
-    ['id' => 'ORD-008', 'status' => 'pending',    'payment_status' => 'pending',  'total_amount' => 1800.00],
-    ['id' => 'ORD-009', 'status' => 'completed',  'payment_status' => 'verified', 'total_amount' => 670.00],
-    ['id' => 'ORD-010', 'status' => 'processing', 'payment_status' => 'pending',  'total_amount' => 430.00],
-    ['id' => 'ORD-011', 'status' => 'completed',  'payment_status' => 'paid',     'total_amount' => 890.00],
-    ['id' => 'ORD-012', 'status' => 'ready',      'payment_status' => 'verified', 'total_amount' => 310.00],
-];
+$all_orders = [];
+$res = $conn->query('SELECT order_number AS id, status, payment_status, total_amount FROM orders ORDER BY created_at DESC');
+if ($res) {
+    $all_orders = $res->fetch_all(MYSQLI_ASSOC);
+    foreach ($all_orders as &$o) {
+        $o['total_amount'] = (float) $o['total_amount'];
+    }
+    unset($o);
+}
 
 // ── Computed stats ─────────────────────────────────────────────────────────
 $total_users    = count($all_users);
@@ -140,24 +123,7 @@ foreach ($roles as $role) {
       </svg>
       Users
     </a>
-    <a href="admin_products.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 0 1-8 0"/>
-      </svg>
-      Products
-    </a>
-    <a href="admin_orders.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/>
-      </svg>
-      Orders
-    </a>
+
     <a href="admin_logs.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -167,10 +133,19 @@ foreach ($roles as $role) {
       </svg>
       Reports
     </a>
+
+    <a href="admin_settings.php" class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+      </svg>
+      Settings
+    </a>
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="logout.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

@@ -1,61 +1,52 @@
 # EVSU Reserve — Database Setup
 
-## Cashier schema
+## Automatic setup (recommended)
 
-Import `evsu_reserve_cashier.sql` into MySQL (database name: **evsu_reserve**, same as `login_page.php`).
+When you copy this project to another PC:
 
-### Option A — phpMyAdmin
+1. Start **Apache** and **MySQL** in XAMPP.
+2. Open any page that uses `database.php` (e.g. `login_page.php`).
+3. The app will **automatically**:
+   - Create the database `evsu_reserve` (if missing)
+   - Create all tables
+   - Insert demo users, products, orders, and payments (only on a fresh/empty database)
 
-1. Start **Apache** and **MySQL** in XAMPP Control Panel.
-2. Open http://localhost/phpmyadmin
-3. **Import** → choose `evsu_reserve_cashier.sql` → Go
+No manual SQL import is required for normal use.
 
-### Option B — Command line
+### Credentials
+
+Edit `database/config.php` if your MySQL user/password differs from XAMPP defaults (`root` with no password).
+
+Optional environment overrides: `EVSU_DB_HOST`, `EVSU_DB_USER`, `EVSU_DB_PASS`, `EVSU_DB_NAME`.
+
+## Manual import (optional)
+
+You can still import `evsu_reserve_cashier.sql` via phpMyAdmin or:
 
 ```bash
 c:\xampp\mysql\bin\mysql.exe -u root < c:\xampp\htdocs\EvsuReserve\database\evsu_reserve_cashier.sql
 ```
 
-## Tables created
+## Tables
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Login (student, cashier, admin) |
+| `users` | Login (student, cashier, staff, admin) |
 | `products` | Catalog |
 | `cart_items` | Student shopping cart |
 | `orders` | Student orders |
 | `order_items` | Line items per order |
 | `payments` | Cashier payment verification |
+| `system_settings` | Admin configuration |
+| `activity_logs` | Admin activity log |
 
 ## Demo logins
 
-| Role | Student ID | Password |
-|------|------------|----------|
-| Cashier | `CASH-00001` | `password` |
-| Student | `2020-00001` | `password` |
-| Admin | `ADMIN-0001` | `password` |
+Password for all accounts below: **`password`**
 
-## Cashier queries (for wiring PHP later)
-
-**List payments for dashboard:**
-
-```sql
-SELECT p.payment_code AS id, o.order_number, u.name AS payer_name,
-       p.method, p.amount, p.status, p.created_at AS created_date
-FROM payments p
-JOIN orders o ON o.id = p.order_id
-JOIN users u ON u.id = o.user_id
-ORDER BY p.created_at DESC;
-```
-
-**Verify payment:**
-
-```sql
-UPDATE payments
-SET status = 'verified', verified_by = ?, verification_date = NOW()
-WHERE payment_code = ?;
-
-UPDATE orders
-SET payment_status = 'verified', status = 'paid'
-WHERE id = ?;
-```
+| Role | Login (email or student ID) |
+|------|-----------------------------|
+| Student | `2020-00001` or `juan.delacruz@evsu.edu.ph` |
+| Cashier | `CASH-00001` or `maria.santos@evsu.edu.ph` |
+| Staff | `STAFF-0001` or `carmen.lopez@evsu.edu.ph` |
+| Admin | `ADMIN-0001` or `admin@evsu.edu.ph` |

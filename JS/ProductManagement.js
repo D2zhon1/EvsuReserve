@@ -131,17 +131,26 @@ function handleSubmit(e) {
   btn.disabled    = true;
   btn.textContent = 'Saving…';
 
-  // ── Replace this block with a real fetch() to your PHP endpoint ──
-  setTimeout(() => {
-    closeModal();
-    showToast(isEdit ? 'Product updated successfully.' : 'Product created successfully.', 'success');
-    btn.disabled    = false;
-    btn.textContent = isEdit ? 'Update Product' : 'Create Product';
-
-    // TODO: submit payload via fetch to product_save.php, then reload table
-    console.log('Payload to save:', payload);
-  }, 600);
-  // ─────────────────────────────────────────────────────────────────
+  fetch('product_save.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        closeModal();
+        showToast(isEdit ? 'Product updated successfully.' : 'Product created successfully.', 'success');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        showToast(data.message || 'Save failed.', 'error');
+      }
+    })
+    .catch(() => showToast('Network error.', 'error'))
+    .finally(() => {
+      btn.disabled    = false;
+      btn.textContent = isEdit ? 'Update Product' : 'Create Product';
+    });
 }
 
 /* ─────────────────────────────────────────────
@@ -170,16 +179,26 @@ function executeDelete() {
   btn.disabled    = true;
   btn.textContent = 'Deleting…';
 
-  // ── Replace with real fetch() to product_delete.php ──
-  setTimeout(() => {
-    showToast('Product deleted.', 'success');
-    closeDelete();
-    btn.disabled    = false;
-    btn.textContent = 'Delete';
-    // TODO: remove row from DOM or reload table
-    console.log('Delete product ID:', deleteTargetId);
-  }, 500);
-  // ──────────────────────────────────────────────────────
+  fetch('product_delete.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: deleteTargetId }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Product deleted.', 'success');
+        closeDelete();
+        setTimeout(() => location.reload(), 600);
+      } else {
+        showToast(data.message || 'Delete failed.', 'error');
+      }
+    })
+    .catch(() => showToast('Network error.', 'error'))
+    .finally(() => {
+      btn.disabled    = false;
+      btn.textContent = 'Delete';
+    });
 }
 
 /* ─────────────────────────────────────────────

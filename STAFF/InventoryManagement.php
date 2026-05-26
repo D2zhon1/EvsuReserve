@@ -1,36 +1,61 @@
 <?php
 session_start();
 
-// Mock staff user — replace with actual session data
-$user_name  = $_SESSION['user_name'] ?? 'Maria Santos';
+require_once __DIR__ . '/../database.php';
+
+$user_name  = $_SESSION['user_name'] ?? 'Staff User';
 $first_name = explode(' ', $user_name)[0];
-$staff_role = $_SESSION['staff_role'] ?? 'Admin';
+$staff_role = $_SESSION['staff_role'] ?? 'Staff';
 
-// ── Mock data (replace with real DB queries) ─────────────────────────────
-$total_orders    = 124;
-$pending_orders  = 18;
-$processing_orders = 9;
-$completed_orders = 91;
-$total_revenue   = 48750.00;
-$total_students  = 312;
-$low_stock_items = 4;
+$stats = $conn->query(
+    "SELECT
+        COUNT(*) AS total_orders,
+        SUM(status = 'pending') AS pending_orders,
+        SUM(status = 'processing') AS processing_orders,
+        SUM(status = 'completed') AS completed_orders,
+        SUM(CASE WHEN payment_status IN ('verified','paid') THEN total_amount ELSE 0 END) AS total_revenue
+     FROM orders"
+)->fetch_assoc();
 
-$recent_orders = [
-    ['id' => 'ORD-042', 'student' => 'Juan dela Cruz',   'status' => 'pending',    'items' => 3, 'date' => '2026-05-15', 'total' => 1250.00, 'payment' => 'pending'],
-    ['id' => 'ORD-041', 'student' => 'Ana Reyes',         'status' => 'processing', 'items' => 1, 'date' => '2026-05-15', 'total' => 350.00,  'payment' => 'paid'],
-    ['id' => 'ORD-040', 'student' => 'Carlo Mendoza',     'status' => 'completed',  'items' => 2, 'date' => '2026-05-14', 'total' => 780.00,  'payment' => 'verified'],
-    ['id' => 'ORD-039', 'student' => 'Liza Gomez',        'status' => 'completed',  'items' => 4, 'date' => '2026-05-13', 'total' => 2100.00, 'payment' => 'verified'],
-    ['id' => 'ORD-038', 'student' => 'Mark Villanueva',   'status' => 'cancelled',  'items' => 1, 'date' => '2026-05-12', 'total' => 420.00,  'payment' => 'refunded'],
-    ['id' => 'ORD-037', 'student' => 'Jenny Castro',      'status' => 'pending',    'items' => 2, 'date' => '2026-05-12', 'total' => 660.00,  'payment' => 'pending'],
-    ['id' => 'ORD-036', 'student' => 'Rico Santos',       'status' => 'processing', 'items' => 1, 'date' => '2026-05-11', 'total' => 290.00,  'payment' => 'paid'],
-];
+$total_orders       = (int) ($stats['total_orders'] ?? 0);
+$pending_orders     = (int) ($stats['pending_orders'] ?? 0);
+$processing_orders  = (int) ($stats['processing_orders'] ?? 0);
+$completed_orders   = (int) ($stats['completed_orders'] ?? 0);
+$total_revenue      = (float) ($stats['total_revenue'] ?? 0);
 
-$low_stock_products = [
-    ['name' => 'EVSU Polo Shirt (L)',    'sku' => 'POLO-L',  'stock' => 2,  'threshold' => 5],
-    ['name' => 'PE Uniform Set (M)',      'sku' => 'PE-M',    'stock' => 1,  'threshold' => 5],
-    ['name' => 'College Pin — COT',       'sku' => 'PIN-COT', 'stock' => 3,  'threshold' => 10],
-    ['name' => 'Laboratory Gown (S)',     'sku' => 'LAB-S',   'stock' => 0,  'threshold' => 5],
-];
+$total_students = (int) $conn->query("SELECT COUNT(*) AS c FROM users WHERE role = 'student'")->fetch_assoc()['c'];
+
+$low_stock_items = (int) $conn->query('SELECT COUNT(*) AS c FROM products WHERE stock_quantity < 10 AND is_active = 1')->fetch_assoc()['c'];
+
+$recent_orders = [];
+$res = $conn->query(
+    "SELECT o.order_number AS id, u.full_name AS student, o.status,
+            (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS items,
+            DATE(o.created_at) AS date, o.total_amount AS total, o.payment_status AS payment
+     FROM orders o
+     JOIN users u ON u.id = o.user_id
+     ORDER BY o.created_at DESC LIMIT 7"
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['total'] = (float) $row['total'];
+        $row['items'] = (int) $row['items'];
+        $recent_orders[] = $row;
+    }
+}
+
+$low_stock_products = [];
+$res = $conn->query(
+    "SELECT name, COALESCE(sku, CONCAT('SKU-', id)) AS sku, stock_quantity AS stock
+     FROM products WHERE stock_quantity < 10 AND is_active = 1 ORDER BY stock_quantity ASC LIMIT 10"
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['stock'] = (int) $row['stock'];
+        $row['threshold'] = 10;
+        $low_stock_products[] = $row;
+    }
+}
 
 $status_config = [
     'completed'  => ['label' => 'Completed',  'class' => 'badge-green'],
@@ -55,7 +80,7 @@ $payment_config = [
   <title>Staff Dashboard — EVSU Reserve</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/CSS/InventoryManagement.css"/>
+  <link rel="stylesheet" href="../CSS/InventoryManagement.css"/>
 </head>
 <body>
 
@@ -117,7 +142,7 @@ $payment_config = [
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="logout.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

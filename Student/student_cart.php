@@ -1,18 +1,35 @@
 <?php
 session_start();
 
-// ── Mock cart items (replace with real DB query) ───────────────────────────
-$cart_items = [
-    ['id'=>1,'product_id'=>1,'product_name'=>'PE Uniform Set',    'unit_price'=>450.00,'quantity'=>2,'size'=>'M',  'image_url'=>''],
-    ['id'=>2,'product_id'=>2,'product_name'=>'EVSU ID Sling',      'unit_price'=>85.00, 'quantity'=>1,'size'=>'',   'image_url'=>''],
-    ['id'=>3,'product_id'=>3,'product_name'=>'Laboratory Manual',  'unit_price'=>65.00, 'quantity'=>3,'size'=>'',   'image_url'=>''],
-];
-// ─────────────────────────────────────────────────────────────────────────
+require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/auth.php';
+
+$ctx        = evsu_student_init($conn);
+$user_id    = $ctx['user_id'];
+$first_name = $ctx['first_name'];
+$user_name  = $ctx['user_name'];
+$cart_items = [];
+
+$stmt = $conn->prepare(
+    'SELECT c.id, c.product_id, c.product_name, c.unit_price, c.quantity, c.size,
+            COALESCE(p.image_url, \'\') AS image_url
+     FROM cart_items c
+     LEFT JOIN products p ON p.id = c.product_id
+     WHERE c.user_id = ?
+     ORDER BY c.created_at DESC'
+);
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $row['unit_price'] = (float) $row['unit_price'];
+    $row['quantity']   = (int) $row['quantity'];
+    $cart_items[] = $row;
+}
+$stmt->close();
 
 $cart_count = array_sum(array_column($cart_items, 'quantity'));
-$total      = array_reduce($cart_items, fn($s,$i) => $s + $i['unit_price'] * $i['quantity'], 0);
-$user_name  = $_SESSION['user_name'] ?? 'Student';
-$first_name = explode(' ', $user_name)[0];
+$total      = array_reduce($cart_items, fn($s, $i) => $s + $i['unit_price'] * $i['quantity'], 0);
 
 // Toast from redirect
 $toast_msg  = $_SESSION['toast_msg']  ?? '';
@@ -51,16 +68,16 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       Products
     </a>
-    <a href="orders.php" class="nav-item">
+    <a href="student_orders.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
       My Orders
     </a>
-    <a href="Student_cart.php" class="nav-item active">
+    <a href="student_cart.php" class="nav-item active">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
       Cart
       <?php if ($cart_count > 0): ?><span class="nav-badge"><?= $cart_count ?></span><?php endif; ?>
     </a>
-    <a href="profile.php" class="nav-item">
+    <a href="student_profile.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Profile
     </a>
@@ -80,7 +97,7 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <div class="topbar-right">
-      <a href="cart.php" class="topbar-cart">
+      <a href="student_cart.php" class="topbar-cart">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <?php if ($cart_count > 0): ?><span class="cart-dot"><?= $cart_count ?></span><?php endif; ?>
       </a>
@@ -112,7 +129,7 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
         </svg>
         <p class="empty-title">Your cart is empty</p>
         <p class="empty-sub">Browse products and add items to your cart.</p>
-        <a href="products.php" class="btn-shop btn-shop-sm">Shop Now</a>
+        <a href="student_product.php" class="btn-shop btn-shop-sm">Shop Now</a>
       </div>
 
     <?php else: ?>

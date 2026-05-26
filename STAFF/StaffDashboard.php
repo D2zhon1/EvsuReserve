@@ -1,29 +1,42 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/../database.php';
+
 $user_name  = $_SESSION['user_name'] ?? 'Staff User';
 $first_name = explode(' ', $user_name)[0];
 
-// ── Mock data (replace with real DB queries) ──────────────────────────────
-$products = [
-    ['id' => 1, 'name' => 'EVSU PE Uniform',    'category' => 'uniform',       'price' => 350.00, 'markup_price' => 420.00, 'stock_quantity' => 45,  'is_active' => true],
-    ['id' => 2, 'name' => 'EVSU ID Sling',       'category' => 'id_sling',      'price' => 80.00,  'markup_price' => 110.00, 'stock_quantity' => 120, 'is_active' => true],
-    ['id' => 3, 'name' => 'Blue Exam Booklet',   'category' => 'booklet',       'price' => 15.00,  'markup_price' => 20.00,  'stock_quantity' => 5,   'is_active' => true],
-    ['id' => 4, 'name' => 'EVSU Tote Bag',       'category' => 'merchandise',   'price' => 180.00, 'markup_price' => 220.00, 'stock_quantity' => 30,  'is_active' => true],
-    ['id' => 5, 'name' => 'Laboratory Uniform',  'category' => 'uniform',       'price' => 450.00, 'markup_price' => 530.00, 'stock_quantity' => 0,   'is_active' => false],
-    ['id' => 6, 'name' => 'Ballpen (12 pcs)',     'category' => 'school_supply', 'price' => 60.00,  'markup_price' => 75.00,  'stock_quantity' => 200, 'is_active' => true],
-    ['id' => 7, 'name' => 'Engineering Notebook','category' => 'school_supply', 'price' => 95.00,  'markup_price' => 120.00, 'stock_quantity' => 8,   'is_active' => true],
-    ['id' => 8, 'name' => 'EVSU Lanyard',        'category' => 'merchandise',   'price' => 55.00,  'markup_price' => 75.00,  'stock_quantity' => 3,   'is_active' => true],
-];
+$products = [];
+$res = $conn->query(
+    'SELECT id, name, category, unit_price AS price,
+            COALESCE(markup_price, unit_price * 1.2) AS markup_price,
+            stock_quantity, is_active
+     FROM products ORDER BY name'
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['price'] = (float) $row['price'];
+        $row['markup_price'] = (float) $row['markup_price'];
+        $row['stock_quantity'] = (int) $row['stock_quantity'];
+        $row['is_active'] = (bool) $row['is_active'];
+        $products[] = $row;
+    }
+}
 
-$orders = [
-    ['id' => 'ORD-001', 'customer_name' => 'Juan dela Cruz',   'status' => 'completed',  'payment_status' => 'paid',     'total_amount' => 1250.00, 'date' => '2026-05-10'],
-    ['id' => 'ORD-002', 'customer_name' => 'Maria Santos',     'status' => 'pending',    'payment_status' => 'pending',  'total_amount' => 350.00,  'date' => '2026-05-12'],
-    ['id' => 'ORD-003', 'customer_name' => 'Pedro Reyes',      'status' => 'processing', 'payment_status' => 'pending',  'total_amount' => 780.00,  'date' => '2026-05-13'],
-    ['id' => 'ORD-004', 'customer_name' => 'Ana Gomez',        'status' => 'completed',  'payment_status' => 'verified', 'total_amount' => 2100.00, 'date' => '2026-04-28'],
-    ['id' => 'ORD-005', 'customer_name' => 'Luis Torres',      'status' => 'cancelled',  'payment_status' => 'refunded', 'total_amount' => 420.00,  'date' => '2026-04-15'],
-    ['id' => 'ORD-006', 'customer_name' => 'Rosa Villanueva',  'status' => 'pending',    'payment_status' => 'pending',  'total_amount' => 630.00,  'date' => '2026-05-14'],
-];
+$orders = [];
+$res = $conn->query(
+    'SELECT o.order_number AS id, u.full_name AS customer_name, o.status, o.payment_status,
+            o.total_amount, DATE(o.created_at) AS date
+     FROM orders o
+     JOIN users u ON u.id = o.user_id
+     ORDER BY o.created_at DESC'
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['total_amount'] = (float) $row['total_amount'];
+        $orders[] = $row;
+    }
+}
 
 // ── Computed values (mirrors React logic) ─────────────────────────────────
 $low_stock = array_filter($products, fn($p) => ($p['stock_quantity'] ?? 0) < 10);
@@ -57,8 +70,8 @@ $status_config = [
   <title>Staff Dashboard — EVSU Reserve</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/CSS/student_dashboard.css"/>
-  <link rel="stylesheet" href="/CSS/StaffDashboard.css"/>
+  <link rel="stylesheet" href="../CSS/student_dashboard.css"/>
+  <link rel="stylesheet" href="../CSS/StaffDashboard.css"/>
 </head>
 <body>
 
@@ -119,7 +132,7 @@ $status_config = [
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="logout.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

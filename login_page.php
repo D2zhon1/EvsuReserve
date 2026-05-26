@@ -1,50 +1,68 @@
 <?php
 session_start();
 
-include 'database.php';
+require_once __DIR__ . '/database.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$login_error    = '';
+$login_success  = isset($_GET['registered']) ? 'Account created! Sign in with your email or student ID and password.' : '';
 
-    $email = $_POST['email'];
-    $password = $_POST['password'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $login    = trim($_POST['student_id'] ?? $_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    // Check if email exists
-    $sql = "SELECT * FROM users WHERE email = ?";
+    if ($login === '' || $password === '') {
+        $login_error = 'Please enter your email or student ID and password.';
+    } else {
+        $stmt = $conn->prepare(
+            'SELECT id, student_id, full_name, email, password, role
+             FROM users
+             WHERE email = ? OR student_id = ?
+             LIMIT 1'
+        );
+        $stmt->bind_param('ss', $login, $login);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
+        if ($result->num_rows > 0) {
+            $user = $result->fetch_assoc();
 
-    $result = $stmt->get_result();
+            if (password_verify($password, $user['password'])) {
+                $_SESSION['user_id']    = $user['id'];
+                $_SESSION['student_id'] = $user['student_id'];
+                $_SESSION['user_name']  = $user['full_name'];
+                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['role']       = $user['role'];
 
-    if ($result->num_rows > 0) {
+                evsu_log_activity(
+                    $conn,
+                    'User Login',
+                    $user['email'],
+                    $user['role'],
+                    'Successful login'
+                );
 
-        $user = $result->fetch_assoc();
+                $redirects = [
+                    'student' => 'Student/student_dashboard.php',
+                    'cashier' => 'Cashier/cashier_dashboard.php',
+                    'staff'   => 'STAFF/StaffDashboard.php',
+                    'admin'   => 'Admin/admin_dashboard.php',
+                ];
 
-        // Verify password
-        if (password_verify($password, $user['password'])) {
+                $role = $user['role'];
+                header('Location: ' . ($redirects[$role] ?? 'Student/student_dashboard.php'));
+                exit;
+            }
 
-            // Store session
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['student_id'] = $user['student_id'];
-            $_SESSION['name'] = $user['full_name'];
-
-            // Redirect
-            header("Location: dashboard.php");
-            exit();
-
+            $login_error = 'Incorrect password.';
+            evsu_log_activity($conn, 'User Login Failed', $login, '', 'Invalid password');
         } else {
-            echo "Incorrect password.";
+            $login_error = 'Account not found.';
+            evsu_log_activity($conn, 'User Login Failed', $login, '', 'Unknown account');
         }
 
-    } else {
-        echo "Email not found.";
+        $stmt->close();
     }
-
-    $stmt->close();
 }
-
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -71,8 +89,7 @@ $conn->close();
     <div class="card-left">
       <div class="school-brand">
         <div class="seal-circle">
-          <!-- Replace with: <img src="evsu-seal.png" alt="EVSU Seal" /> -->
-           <img src="../image/logo.jpg" alt="EVSU" />
+           <img src="image/logo.jpg" alt="EVSU" />
           <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"
                fill="none" stroke="#c8a951" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round">
@@ -94,15 +111,23 @@ $conn->close();
       <h1 class="portal-title">EVSU RESERVE</h1>
       <h2 class="signin-heading">Sign In</h2>
 
-      <form method="POST" action="../Student/student_dashboard.php" novalidate id="login-form">
+      <?php if ($login_success): ?>
+        <p class="login-error" style="color:#166534;margin-bottom:12px;font-size:14px;"><?= htmlspecialchars($login_success) ?></p>
+      <?php endif; ?>
+      <?php if ($login_error): ?>
+        <p class="login-error" style="color:#8b0000;margin-bottom:12px;font-size:14px;"><?= htmlspecialchars($login_error) ?></p>
+      <?php endif; ?>
+
+      <form method="POST" action="login_page.php" novalidate id="login-form">
 
         <div class="field">
           <input
             type="text"
             id="student_id"
             name="student_id"
-            placeholder="Email"
+            placeholder="Email or Student ID"
             autocomplete="username"
+            required
           />
         </div>
 
@@ -114,6 +139,7 @@ $conn->close();
               name="password"
               placeholder="Password"
               autocomplete="current-password"
+              required
             />
             <button type="button" class="pw-toggle" onclick="togglePw()" aria-label="Show password">
               <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="17" height="17"
