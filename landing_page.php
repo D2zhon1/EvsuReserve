@@ -1,8 +1,4 @@
-<?php
-// EVSU RESERVE - Landing Page
-// Converted from React to PHP/CSS/JavaScript
-?>
-<!DOCTYPE html>
+<!DOCTYPE html
 <html lang="en">
 <head>
   <meta charset="UTF-8" />

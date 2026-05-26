@@ -1,32 +1,176 @@
 <?php
 session_start();
+include '../database.php';
 
-// Mock user — replace with actual session data
-$user_name     = $_SESSION['user_name']  ?? 'Juan dela Cruz';
-$first_name    = explode(' ', $user_name)[0];
+/* CHECK LOGIN SESSION */
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login_page.php");
+    exit();
+}
+$user_id = $_SESSION['user_id'];
 
-// ── Mock data (replace with real DB queries) ──────────────────────────────
-$total_orders     = 8;
-$pending_orders   = 2;
-$completed_orders = 5;
-$cart_items       = 3;
+/* ─────────────────────────────────────────────
+   GET USER INFORMATION
+───────────────────────────────────────────── */
+$user_query = $conn->prepare("
+    SELECT full_name
+    FROM users
+    WHERE id = ?
+");
 
-$recent_orders = [
-    ['id' => 'ORD-001',  'status' => 'completed', 'items' => 3, 'date' => '2026-05-10', 'total' => 1250.00, 'payment_status' => 'paid'],
-    ['id' => 'ORD-002',  'status' => 'pending',   'items' => 1, 'date' => '2026-05-12', 'total' => 350.00,  'payment_status' => 'pending'],
-    ['id' => 'ORD-003',  'status' => 'processing','items' => 2, 'date' => '2026-05-13', 'total' => 780.00,  'payment_status' => 'pending'],
-    ['id' => 'ORD-004',  'status' => 'completed', 'items' => 4, 'date' => '2026-04-28', 'total' => 2100.00, 'payment_status' => 'verified'],
-    ['id' => 'ORD-005',  'status' => 'cancelled', 'items' => 1, 'date' => '2026-04-15', 'total' => 420.00,  'payment_status' => 'refunded'],
-];
+$user_query->bind_param("i", $user_id);
+$user_query->execute();
 
-// Status badge config
+$user_result = $user_query->get_result();
+
+if ($user_result->num_rows > 0) {
+
+    $user = $user_result->fetch_assoc();
+
+    $user_name  = $user['full_name'];
+    $first_name = explode(' ', $user_name)[0];
+
+} else {
+
+    session_destroy();
+    header("Location: login.php");
+    exit();
+}
+
+/* ─────────────────────────────────────────────
+   TOTAL ORDERS
+───────────────────────────────────────────── */
+$total_query = $conn->prepare("
+    SELECT COUNT(*) AS total_orders
+    FROM orders
+    WHERE user_id = ?
+");
+
+$total_query->bind_param("i", $user_id);
+$total_query->execute();
+
+$total_result = $total_query->get_result()->fetch_assoc();
+
+$total_orders = $total_result['total_orders'];
+
+/* ─────────────────────────────────────────────
+   PENDING ORDERS
+───────────────────────────────────────────── */
+$pending_query = $conn->prepare("
+    SELECT COUNT(*) AS pending_orders
+    FROM orders
+    WHERE user_id = ?
+    AND status = 'pending'
+");
+
+$pending_query->bind_param("i", $user_id);
+$pending_query->execute();
+
+$pending_result = $pending_query->get_result()->fetch_assoc();
+
+$pending_orders = $pending_result['pending_orders'];
+
+/* ─────────────────────────────────────────────
+   COMPLETED ORDERS
+───────────────────────────────────────────── */
+$completed_query = $conn->prepare("
+    SELECT COUNT(*) AS completed_orders
+    FROM orders
+    WHERE user_id = ?
+    AND status = 'completed'
+");
+
+$completed_query->bind_param("i", $user_id);
+$completed_query->execute();
+
+$completed_result = $completed_query->get_result()->fetch_assoc();
+
+$completed_orders = $completed_result['completed_orders'];
+
+/* ─────────────────────────────────────────────
+   CART ITEMS
+───────────────────────────────────────────── */
+$cart_query = $conn->prepare("
+    SELECT COUNT(*) AS cart_items
+    FROM cart
+    WHERE user_id = ?
+");
+
+$cart_query->bind_param("i", $user_id);
+$cart_query->execute();
+
+$cart_result = $cart_query->get_result()->fetch_assoc();
+
+$cart_items = $cart_result['cart_items'];
+
+/* ─────────────────────────────────────────────
+   RECENT ORDERS
+───────────────────────────────────────────── */
+$recent_query = $conn->prepare("
+    SELECT
+        order_number,
+        status,
+        total_amount,
+        created_at
+    FROM orders
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 5
+");
+
+$recent_query->bind_param("i", $user_id);
+$recent_query->execute();
+
+$recent_result = $recent_query->get_result();
+
+$recent_orders = [];
+
+while ($row = $recent_result->fetch_assoc()) {
+
+    /* COUNT ITEMS PER ORDER */
+    $items_query = $conn->prepare("
+        SELECT COUNT(*) AS total_items
+        FROM order_items
+        WHERE order_number = ?
+    ");
+
+    $items_query->bind_param("s", $row['order_number']);
+    $items_query->execute();
+
+    $items_result = $items_query->get_result()->fetch_assoc();
+
+    $recent_orders[] = [
+        'id'     => $row['order_number'],
+        'status' => $row['status'],
+        'items'  => $items_result['total_items'],
+        'date'   => $row['created_at'],
+        'total'  => $row['total_amount']
+    ];
+}
+
+/* STATUS BADGES */
 $status_config = [
-    'completed'  => ['label' => 'Completed',  'class' => 'badge-green'],
-    'pending'    => ['label' => 'Pending',     'class' => 'badge-orange'],
-    'processing' => ['label' => 'Processing',  'class' => 'badge-blue'],
-    'cancelled'  => ['label' => 'Cancelled',   'class' => 'badge-red'],
+
+    'completed' => [
+        'label' => 'Completed',
+        'class' => 'badge-green'
+    ],
+
+    'pending' => [
+        'label' => 'Pending',
+        'class' => 'badge-orange'
+    ],
+
+    'processing' => [
+        'label' => 'Processing',
+        'class' => 'badge-blue'
+    ],
+
+    'cancelled' => [
+        'label' => 'Cancelled',
+        'class' => 'badge-red'
+    ]
 ];
-// ─────────────────────────────────────────────────────────────────────────
 ?>
 <!DOCTYPE html>
 <html lang="en">

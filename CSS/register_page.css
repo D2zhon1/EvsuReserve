@@ -1,0 +1,158 @@
+/* =============================================
+   EVSU RESERVE — register.css
+   Extends login_page.css — import AFTER it
+   ============================================= */
+
+/* ── Wider card for the registration form ── */
+.register-card {
+  width: 980px;
+  min-height: 540px;
+}
+
+/* ── Left panel extras ── */
+.left-info {
+  position: relative;
+  z-index: 2;
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.left-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  color: rgba(255,255,255,.88);
+  font-size: .88rem;
+  line-height: 1.45;
+}
+
+.left-info-item svg {
+  flex-shrink: 0;
+  margin-top: .1rem;
+}
+
+/* ── Field label ── */
+.field label {
+  display: block;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: .32rem;
+  letter-spacing: .01em;
+}
+
+/* ── Two-column field row ── */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin-bottom: .9rem;
+}
+
+/* Single-column field below a row still needs bottom margin */
+.register-card .field {
+  margin-bottom: 0;
+}
+.register-card .card-right > .field {
+  margin-bottom: .9rem;
+}
+
+/* Select styling — matches text inputs */
+.field select {
+  width: 100%;
+  padding: .78rem 1rem;
+  font-family: var(--font-body);
+  font-size: .93rem;
+  color: var(--text);
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.field select:focus {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px rgba(139,0,0,.10);
+}
+
+.field select.error {
+  border-color: #ef4444;
+}
+
+/* Disabled/placeholder option */
+.field select option[value=""][disabled] {
+  color: #b0b0b0;
+}
+
+/* ── Success alert ── */
+.alert-success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  border-radius: 6px;
+  padding: .65rem .9rem;
+  font-size: .85rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* ── Password strength bar ── */
+.strength-bar-wrap {
+  margin-top: .4rem;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.strength-bar {
+  height: 100%;
+  border-radius: 99px;
+  width: 0%;
+  transition: width .3s ease, background .3s ease;
+}
+
+.strength-label,
+.match-label {
+  display: block;
+  font-size: .74rem;
+  font-weight: 500;
+  margin-top: .28rem;
+  min-height: 1rem;
+  transition: color .2s;
+}
+
+/* ── Submit button extra top margin for register ── */
+.register-card .btn-login {
+  margin-top: .6rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 760px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .register-card {
+    width: 100%;
+    border-radius: 0;
+  }
+  .register-card .card-left {
+    display: none;
+  }
+  .register-card .card-right {
+    padding: 2rem 1.4rem;
+  }
+}

@@ -1,48 +1,50 @@
 <?php
 session_start();
 
-// ── DB config ─────────────────────────────────────────────────────────────
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'evsu_reserve');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-// ─────────────────────────────────────────────────────────────────────────
+include 'database.php';
 
-$error = '';
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $student_id = trim($_POST['student_id'] ?? '');
-    $password   = trim($_POST['password']   ?? '');
+    $email = $_POST['email'];
+    $password = $_POST['password'];
 
-    if (empty($student_id) || empty($password)) {
-        $error = 'Please fill in all fields.';
-    } else {
-        try {
-            $pdo = new PDO(
-                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-                DB_USER, DB_PASS,
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-            );
+    // Check if email exists
+    $sql = "SELECT * FROM users WHERE email = ?";
 
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE student_id = ? LIMIT 1");
-            $stmt->execute([$student_id]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
 
-            if ($user && password_verify($password, $user['password'])) {
-                $_SESSION['user_id']   = $user['id'];
-                $_SESSION['user_name'] = $user['name'];
-                $_SESSION['user_role'] = $user['role'];
+    $result = $stmt->get_result();
 
-                header('Location: ' . ($user['role'] === 'admin' ? '/admin/dashboard.php' : '/student/dashboard.php'));
-                exit;
-            } else {
-                $error = 'Invalid Student ID or password.';
-            }
-        } catch (PDOException $e) {
-            $error = 'Database error. Please try again later.';
+    if ($result->num_rows > 0) {
+
+        $user = $result->fetch_assoc();
+
+        // Verify password
+        if (password_verify($password, $user['password'])) {
+
+            // Store session
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['student_id'] = $user['student_id'];
+            $_SESSION['name'] = $user['full_name'];
+
+            // Redirect
+            header("Location: dashboard.php");
+            exit();
+
+        } else {
+            echo "Incorrect password.";
         }
+
+    } else {
+        echo "Email not found.";
     }
+
+    $stmt->close();
 }
+
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="school-brand">
         <div class="seal-circle">
           <!-- Replace with: <img src="evsu-seal.png" alt="EVSU Seal" /> -->
+           <img src="../image/logo.jpg" alt="EVSU" />
           <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"
                fill="none" stroke="#c8a951" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round">
@@ -91,13 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <h1 class="portal-title">EVSU RESERVE</h1>
       <h2 class="signin-heading">Sign In</h2>
 
-      <?php if ($error): ?>
-        <div class="alert-error" role="alert">
-          <?= htmlspecialchars($error) ?>
-        </div>
-      <?php endif; ?>
-
-      <form method="POST" action="login_page.php" novalidate id="login-form">
+      <form method="POST" action="../Student/student_dashboard.php" novalidate id="login-form">
 
         <div class="field">
           <input
@@ -105,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             id="student_id"
             name="student_id"
             placeholder="Email"
-            value="<?= htmlspecialchars($_POST['student_id'] ?? '') ?>"
             autocomplete="username"
           />
         </div>
@@ -136,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="form-links">
         <a href="forgot-password.php" class="link-maroon">Forgot Password ?</a>
-        <span>New ? <a href="register.php" class="link-maroon">Register</a></span>
+        <span>New ? <a href="register_page.php" class="link-maroon">Register</a></span>
       </div>
 
       <p class="terms-text">
