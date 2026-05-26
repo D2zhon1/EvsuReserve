@@ -1,0 +1,104 @@
+/* =============================================
+   EVSU RESERVE — staff_dashboard.css
+   Extends student_dashboard.css
+   ============================================= */
+
+/* ── Revenue stat value — smaller font for ₱ amounts ── */
+.stat-value-sm {
+  font-size: 1.35rem !important;
+}
+
+/* ══ TWO-COLUMN LAYOUT ════════════════════════════════════════════════════ */
+.dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .dual-grid { grid-template-columns: 1fr; }
+}
+
+/* ══ PANEL ROWS (orders + low stock lists) ════════════════════════════════ */
+.panel-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .8rem 1.2rem;
+  border-bottom: 1px solid #f5f0ea;
+  transition: background .15s;
+  gap: .75rem;
+}
+.panel-row:last-child { border-bottom: none; }
+.panel-row:hover { background: #fdf9f5; }
+
+.panel-row-left {
+  min-width: 0;
+  flex: 1;
+}
+.panel-row-title {
+  font-weight: 600;
+  font-size: .88rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-row-sub {
+  font-size: .78rem;
+  color: var(--muted);
+  margin-top: .1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-row-right {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-shrink: 0;
+}
+.panel-row-amount {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--maroon);
+  white-space: nowrap;
+}
+
+/* ── Low stock indicators ── */
+.stock-alert {
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .2rem .6rem;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.stock-warning  { background: #fff7ed; color: #c2410c; }
+.stock-critical { background: #fee2e2; color: #b91c1c; }
+
+/* ── Warning accent on card header ── */
+.orders-card-header-warn {
+  border-left-color: #f97316 !important;
+}
+
+/* ── Pulsing dot for active low-stock alerts ── */
+.warn-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f97316;
+  margin-right: .45rem;
+  vertical-align: middle;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .5; transform: scale(1.25); }
+}

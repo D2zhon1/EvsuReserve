@@ -1,0 +1,311 @@
+/* =============================================
+   EVSU RESERVE — order_management.css
+   Extends staff_dashboard.css
+   ============================================= */
+
+/* ── Extra badge colour ─────────────────────────────────────────────── */
+.badge-purple { background: #ede9fe; color: #6d28d9; }
+
+/* ══ FILTERS BAR ═════════════════════════════════════════════════════════ */
+.om-filters {
+  display: flex;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.om-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.om-search-icon {
+  position: absolute;
+  left: .85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.om-search {
+  width: 100%;
+  height: 38px;
+  padding: 0 .9rem 0 2.4rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  font-family: var(--font-body);
+  font-size: .875rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.om-search::placeholder { color: var(--muted); }
+.om-search:focus {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px rgba(139,0,0,.08);
+}
+
+/* Status filter select */
+.om-select {
+  height: 38px;
+  padding: 0 2.1rem 0 .85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  font-family: var(--font-body);
+  font-size: .875rem;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a6a5a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .7rem center;
+  transition: border-color .2s;
+  min-width: 140px;
+}
+.om-select:focus { border-color: var(--maroon); }
+
+/* ══ TABLE OVERRIDES ══════════════════════════════════════════════════════ */
+
+/* Make rows clickable */
+.om-row { cursor: pointer; }
+
+/* Update-status cell inline select */
+.om-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.om-status-select {
+  height: 30px;
+  padding: 0 1.8rem 0 .65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #faf7f4;
+  font-family: var(--font-body);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color .2s, background .2s;
+  min-width: 108px;
+}
+.om-status-select:focus { border-color: var(--maroon); background: #fff; }
+.om-status-select:hover { border-color: #c8a951; }
+
+.select-chevron {
+  position: absolute;
+  right: .45rem;
+  pointer-events: none;
+  color: var(--muted);
+}
+
+/* Row flash on status update */
+@keyframes rowFlash {
+  0%   { background: rgba(139,0,0,.08); }
+  100% { background: transparent; }
+}
+.om-row-updated { animation: rowFlash .7s ease; }
+
+/* ══ LOADING SPINNER ══════════════════════════════════════════════════════ */
+.om-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  padding: 3rem 2rem;
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.om-spinner {
+  width: 22px; height: 22px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--maroon);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ══ MODAL ════════════════════════════════════════════════════════════════ */
+.om-modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: backdropIn .2s ease;
+}
+.om-modal-backdrop.open {
+  display: flex;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.om-modal {
+  background: var(--white);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  animation: modalIn .25s cubic-bezier(.34,1.4,.64,1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.93) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.om-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.4rem 1rem;
+  border-bottom: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  z-index: 1;
+}
+
+.om-modal-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+
+.om-modal-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.om-modal-close:hover { background: var(--maroon-light); color: var(--maroon); }
+
+.om-modal-body {
+  padding: 1.25rem 1.4rem 1.4rem;
+}
+
+/* Info grid */
+.om-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .85rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.om-info-item {}
+
+.om-info-label {
+  display: block;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .2rem;
+}
+
+.om-info-value {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.om-info-value.total {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--maroon);
+}
+
+/* Items list */
+.om-items-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--text);
+  letter-spacing: .03em;
+  margin-bottom: .6rem;
+}
+
+.om-items-list {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.om-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .6rem .9rem;
+  font-size: .85rem;
+  border-bottom: 1px solid #f5f0ea;
+  gap: .75rem;
+}
+.om-item-row:last-child { border-bottom: none; }
+
+.om-item-name {
+  color: var(--text);
+  font-weight: 500;
+  flex: 1;
+}
+
+.om-item-qty {
+  color: var(--muted);
+  font-size: .78rem;
+  flex-shrink: 0;
+}
+
+.om-item-subtotal {
+  font-weight: 700;
+  color: var(--maroon);
+  flex-shrink: 0;
+}
+
+/* Notes */
+.om-notes {
+  background: #faf7f4;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .7rem .9rem;
+  font-size: .82rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ══ RESPONSIVE ═══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .om-filters { flex-direction: column; }
+  .om-select  { min-width: unset; width: 100%; }
+  .om-info-grid { grid-template-columns: 1fr; }
+}
