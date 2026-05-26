@@ -1,221 +1,213 @@
-const modal = document.getElementById('productModal');
-const form = document.getElementById('productForm');
-const sizesContainer = document.getElementById('sizesContainer');
+/* =============================================
+   EVSU RESERVE — product_management.js
+   ============================================= */
 
-let sizes = [];
-let editingId = null;
+/* ── State ── */
+let deleteTargetId   = null;
+let currentSizes     = [];
 
-/* OPEN FORM */
+/* ─────────────────────────────────────────────
+   SEARCH / FILTER
+───────────────────────────────────────────── */
+function filterProducts() {
+  const q     = document.getElementById('search-input').value.toLowerCase().trim();
+  const rows  = document.querySelectorAll('#products-table tbody tr');
+  let   count = 0;
 
-function openForm(){
+  rows.forEach(row => {
+    const name = row.dataset.name     || '';
+    const cat  = row.dataset.category || '';
+    const match = !q || name.includes(q) || cat.includes(q);
+    row.style.display = match ? '' : 'none';
+    if (match) count++;
+  });
 
-    modal.style.display = 'flex';
-
-    document.getElementById('modalTitle')
-    .innerText = 'Add Product';
-
-    form.reset();
-
-    sizes = [];
-
-    renderSizes();
-
-    editingId = null;
+  const countEl = document.getElementById('product-count');
+  if (countEl) countEl.textContent = count + (count === 1 ? ' product' : ' products');
 }
 
-/* CLOSE FORM */
-
-function closeForm(){
-
-    modal.style.display = 'none';
+/* ─────────────────────────────────────────────
+   MODAL — open / close
+───────────────────────────────────────────── */
+function openModal() {
+  resetForm();
+  document.getElementById('modal-title').textContent  = 'Add New Product';
+  document.getElementById('submit-btn').textContent   = 'Create Product';
+  document.getElementById('modal-backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
-/* EDIT PRODUCT */
-
-function editProduct(product){
-
-    modal.style.display = 'flex';
-
-    document.getElementById('modalTitle')
-    .innerText = 'Edit Product';
-
-    editingId = product.id;
-
-    document.getElementById('name').value =
-        product.name;
-
-    document.getElementById('description').value =
-        product.description;
-
-    document.getElementById('category').value =
-        product.category;
-
-    document.getElementById('price').value =
-        product.price;
-
-    document.getElementById('markup_price').value =
-        product.markup_price;
-
-    document.getElementById('stock_quantity').value =
-        product.stock_quantity;
-
-    document.getElementById('image_url').value =
-        product.image_url;
-
-    document.getElementById('sku').value =
-        product.sku;
-
-    document.getElementById('is_active').checked =
-        product.is_active;
-
-    sizes = product.sizes_available || [];
-
-    renderSizes();
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.remove('open');
+  document.body.style.overflow = '';
+  resetForm();
 }
 
-/* ADD SIZE */
-
-function addSize(){
-
-    const input =
-        document.getElementById('sizeInput');
-
-    const value = input.value.trim();
-
-    if(value && !sizes.includes(value)){
-
-        sizes.push(value);
-
-        renderSizes();
-
-        input.value = '';
-    }
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('modal-backdrop')) closeModal();
 }
 
-/* RENDER SIZES */
+/* ─────────────────────────────────────────────
+   EDIT
+───────────────────────────────────────────── */
+function openEdit(product) {
+  resetForm();
 
-function renderSizes(){
+  document.getElementById('modal-title').textContent = 'Edit Product';
+  document.getElementById('submit-btn').textContent  = 'Update Product';
+  document.getElementById('form-id').value           = product.id;
+  document.getElementById('form-name').value         = product.name         || '';
+  document.getElementById('form-desc').value         = product.description  || '';
+  document.getElementById('form-category').value     = product.category     || 'uniform';
+  document.getElementById('form-sku').value          = product.sku          || '';
+  document.getElementById('form-price').value        = product.price        || '';
+  document.getElementById('form-markup').value       = product.markup_price || '';
+  document.getElementById('form-stock').value        = product.stock_quantity || '';
+  document.getElementById('form-image').value        = product.image_url    || '';
+  document.getElementById('form-active').checked     = product.is_active !== false;
 
-    sizesContainer.innerHTML = '';
+  // Sizes
+  currentSizes = Array.isArray(product.sizes_available) ? [...product.sizes_available] : [];
+  renderSizeTags();
 
-    sizes.forEach(size => {
-
-        const tag = document.createElement('div');
-
-        tag.className = 'size-tag';
-
-        tag.innerText = `${size} ×`;
-
-        tag.onclick = () => removeSize(size);
-
-        sizesContainer.appendChild(tag);
-    });
+  document.getElementById('modal-backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
-/* REMOVE SIZE */
-
-function removeSize(size){
-
-    sizes =
-        sizes.filter(s => s !== size);
-
-    renderSizes();
+/* ─────────────────────────────────────────────
+   SIZES
+───────────────────────────────────────────── */
+function addSize() {
+  const input = document.getElementById('size-input');
+  const val   = input.value.trim().toUpperCase();
+  if (val && !currentSizes.includes(val)) {
+    currentSizes.push(val);
+    renderSizeTags();
+  }
+  input.value = '';
+  input.focus();
 }
 
-/* DELETE */
-
-function deleteProduct(id){
-
-    if(confirm('Delete this product?')){
-
-        alert(`Product ${id} deleted`);
-
-        // Add AJAX or fetch here
-    }
+function removeSize(size) {
+  currentSizes = currentSizes.filter(s => s !== size);
+  renderSizeTags();
 }
 
-/* SAVE */
+function renderSizeTags() {
+  const container = document.getElementById('size-tags');
+  container.innerHTML = currentSizes.map(s =>
+    `<span class="size-tag" onclick="removeSize('${s}')">
+       ${s} <span class="size-tag-x">×</span>
+     </span>`
+  ).join('');
+  document.getElementById('form-sizes').value = JSON.stringify(currentSizes);
+}
 
-form.addEventListener('submit', function(e){
+/* ─────────────────────────────────────────────
+   FORM SUBMIT
+───────────────────────────────────────────── */
+function handleSubmit(e) {
+  e.preventDefault();
 
-    e.preventDefault();
+  const form     = e.target;
+  const id       = document.getElementById('form-id').value;
+  const isEdit   = Boolean(id);
+  const btn      = document.getElementById('submit-btn');
 
-    const productData = {
+  const payload = {
+    id:               id || null,
+    name:             form.name.value.trim(),
+    description:      form.description.value.trim(),
+    category:         form.category.value,
+    sku:              form.sku.value.trim(),
+    price:            parseFloat(form.price.value) || 0,
+    markup_price:     parseFloat(form.markup_price.value) || 0,
+    stock_quantity:   parseInt(form.stock_quantity.value) || 0,
+    image_url:        form.image_url.value.trim(),
+    sizes_available:  currentSizes,
+    is_active:        form.is_active.checked,
+  };
 
-        id: editingId,
+  btn.disabled    = true;
+  btn.textContent = 'Saving…';
 
-        name:
-            document.getElementById('name').value,
+  // ── Replace this block with a real fetch() to your PHP endpoint ──
+  setTimeout(() => {
+    closeModal();
+    showToast(isEdit ? 'Product updated successfully.' : 'Product created successfully.', 'success');
+    btn.disabled    = false;
+    btn.textContent = isEdit ? 'Update Product' : 'Create Product';
 
-        description:
-            document.getElementById('description').value,
+    // TODO: submit payload via fetch to product_save.php, then reload table
+    console.log('Payload to save:', payload);
+  }, 600);
+  // ─────────────────────────────────────────────────────────────────
+}
 
-        category:
-            document.getElementById('category').value,
+/* ─────────────────────────────────────────────
+   DELETE
+───────────────────────────────────────────── */
+function confirmDelete(id, name) {
+  deleteTargetId = id;
+  document.getElementById('delete-name').textContent = name;
+  document.getElementById('delete-backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
 
-        price:
-            document.getElementById('price').value,
+function closeDelete() {
+  deleteTargetId = null;
+  document.getElementById('delete-backdrop').classList.remove('open');
+  document.body.style.overflow = '';
+}
 
-        markup_price:
-            document.getElementById('markup_price').value,
+function handleDeleteBackdropClick(e) {
+  if (e.target === document.getElementById('delete-backdrop')) closeDelete();
+}
 
-        stock_quantity:
-            document.getElementById('stock_quantity').value,
+function executeDelete() {
+  if (!deleteTargetId) return;
+  const btn = document.getElementById('confirm-delete-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Deleting…';
 
-        image_url:
-            document.getElementById('image_url').value,
+  // ── Replace with real fetch() to product_delete.php ──
+  setTimeout(() => {
+    showToast('Product deleted.', 'success');
+    closeDelete();
+    btn.disabled    = false;
+    btn.textContent = 'Delete';
+    // TODO: remove row from DOM or reload table
+    console.log('Delete product ID:', deleteTargetId);
+  }, 500);
+  // ──────────────────────────────────────────────────────
+}
 
-        sku:
-            document.getElementById('sku').value,
+/* ─────────────────────────────────────────────
+   RESET FORM
+───────────────────────────────────────────── */
+function resetForm() {
+  document.getElementById('product-form').reset();
+  document.getElementById('form-id').value = '';
+  currentSizes = [];
+  renderSizeTags();
+}
 
-        is_active:
-            document.getElementById('is_active').checked,
+/* ─────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────── */
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const toast     = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span class="toast-dot"></span>${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
 
-        sizes_available: sizes
-    };
-
-    console.log(productData);
-
-    alert(
-        editingId
-        ? 'Product updated'
-        : 'Product created'
-    );
-
-    closeForm();
-
-    // Add AJAX or fetch here
+/* ── Close modal on Escape ── */
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeDelete();
+  }
 });
-
-/* SEARCH */
-
-document.getElementById('searchInput')
-.addEventListener('keyup', function(){
-
-    const value =
-        this.value.toLowerCase();
-
-    const rows =
-        document.querySelectorAll('#productTable tbody tr');
-
-    rows.forEach(row => {
-
-        const text =
-            row.innerText.toLowerCase();
-
-        row.style.display =
-            text.includes(value)
-            ? ''
-            : 'none';
-    });
-});
-
-/* CLOSE OUTSIDE */
-
-window.onclick = function(event){
-
-    if(event.target === modal){
-
-        closeForm();
-    }
-}

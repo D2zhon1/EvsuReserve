@@ -1,208 +1,104 @@
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial,sans-serif;
+/* =============================================
+   EVSU RESERVE — staff_dashboard.css
+   Extends student_dashboard.css
+   ============================================= */
+
+/* ── Revenue stat value — smaller font for ₱ amounts ── */
+.stat-value-sm {
+  font-size: 1.35rem !important;
 }
 
-body{
-    background:#f5f5f5;
-    padding:30px;
+/* ══ TWO-COLUMN LAYOUT ════════════════════════════════════════════════════ */
+.dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
 }
 
-.container{
-    max-width:1200px;
-    margin:auto;
+@media (max-width: 900px) {
+  .dual-grid { grid-template-columns: 1fr; }
 }
 
-.page-header{
-    margin-bottom:30px;
+/* ══ PANEL ROWS (orders + low stock lists) ════════════════════════════════ */
+.panel-list {
+  display: flex;
+  flex-direction: column;
 }
 
-.page-header h1{
-    font-size:32px;
-    margin-bottom:5px;
+.panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .8rem 1.2rem;
+  border-bottom: 1px solid #f5f0ea;
+  transition: background .15s;
+  gap: .75rem;
+}
+.panel-row:last-child { border-bottom: none; }
+.panel-row:hover { background: #fdf9f5; }
+
+.panel-row-left {
+  min-width: 0;
+  flex: 1;
+}
+.panel-row-title {
+  font-weight: 600;
+  font-size: .88rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-row-sub {
+  font-size: .78rem;
+  color: var(--muted);
+  margin-top: .1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.page-header p{
-    color:#666;
+.panel-row-right {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-shrink: 0;
+}
+.panel-row-amount {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--maroon);
+  white-space: nowrap;
 }
 
-/* Stats */
+/* ── Low stock indicators ── */
+.stock-alert {
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .2rem .6rem;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.stock-warning  { background: #fff7ed; color: #c2410c; }
+.stock-critical { background: #fee2e2; color: #b91c1c; }
 
-.stats-grid{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:20px;
-    margin-bottom:30px;
+/* ── Warning accent on card header ── */
+.orders-card-header-warn {
+  border-left-color: #f97316 !important;
 }
 
-.stats-card{
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    display:flex;
-    align-items:center;
-    gap:15px;
+/* ── Pulsing dot for active low-stock alerts ── */
+.warn-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f97316;
+  margin-right: .45rem;
+  vertical-align: middle;
+  animation: pulse 1.8s ease-in-out infinite;
 }
-
-.stats-icon{
-    width:50px;
-    height:50px;
-    border-radius:10px;
-    background:#e0e7ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:24px;
-}
-
-.blue{
-    background:#dbeafe;
-}
-
-.orange{
-    background:#ffedd5;
-}
-
-.green{
-    background:#dcfce7;
-}
-
-.stats-title{
-    color:#777;
-    font-size:14px;
-}
-
-.stats-card h2{
-    margin-top:5px;
-}
-
-/* Content */
-
-.content-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-}
-
-.card{
-    background:white;
-    border-radius:10px;
-    overflow:hidden;
-}
-
-.card-header{
-    padding:20px;
-    border-bottom:1px solid #eee;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.card-header a{
-    color:#2563eb;
-    text-decoration:none;
-    font-size:14px;
-}
-
-.card-body{
-    padding:10px 0;
-}
-
-.list-item{
-    padding:15px 20px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    border-bottom:1px solid #f0f0f0;
-}
-
-.list-item:hover{
-    background:#fafafa;
-}
-
-.item-title{
-    font-weight:bold;
-    margin-bottom:3px;
-}
-
-.item-subtitle{
-    font-size:13px;
-    color:#777;
-}
-
-.item-right{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-
-.amount{
-    font-weight:bold;
-}
-
-/* Badges */
-
-.badge{
-    padding:6px 12px;
-    border-radius:20px;
-    font-size:12px;
-    font-weight:bold;
-}
-
-.pending{
-    background:#fef3c7;
-    color:#92400e;
-}
-
-.processing{
-    background:#dbeafe;
-    color:#1d4ed8;
-}
-
-.completed{
-    background:#dcfce7;
-    color:#166534;
-}
-
-.cancelled{
-    background:#fee2e2;
-    color:#991b1b;
-}
-
-.stock-red{
-    color:red;
-    font-weight:bold;
-}
-
-.stock-orange{
-    color:orange;
-    font-weight:bold;
-}
-
-.empty-state{
-    padding:40px;
-    text-align:center;
-    color:#777;
-}
-
-/* Responsive */
-
-@media(max-width:900px){
-
-    .stats-grid{
-        grid-template-columns:1fr 1fr;
-    }
-
-    .content-grid{
-        grid-template-columns:1fr;
-    }
-}
-
-@media(max-width:600px){
-
-    .stats-grid{
-        grid-template-columns:1fr;
-    }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .5; transform: scale(1.25); }
 }
