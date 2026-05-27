@@ -148,9 +148,13 @@ $result = json_decode($response, true);
 
 if (isset($result['data'])) {
 
+    $checkout_session_id = $result['data']['id'] ?? '';
+
     $_SESSION['pending_order'] = [
         'notes' => $notes,
-        'payment_method' => 'online'
+        'payment_method' => 'online',
+        'online_method' => 'GCash',
+        'reference_number' => $checkout_session_id,
     ];
 
     $checkout_url =
