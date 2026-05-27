@@ -196,6 +196,7 @@
   font-weight: 600;
 }
 .stock-ok  { color: #15803d; }
+.stock-low { color: #c2410c; font-weight: 700; }
 .stock-out { color: #b91c1c; }
 
 /* Size selector */

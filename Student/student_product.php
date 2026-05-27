@@ -196,7 +196,9 @@ $cart_count = $ctx['cart_count'];
       <div class="products-grid" id="products-grid">
         <?php foreach ($filtered as $product):
           $cat_label = $category_labels[$product['category']] ?? $product['category'];
-          $in_stock  = ($product['stock_quantity'] ?? 0) > 0;
+          $stock_qty = (int) ($product['stock_quantity'] ?? 0);
+          $in_stock  = $stock_qty > 0;
+          $is_low_stock = $stock_qty > 0 && $stock_qty <= 5;
           $has_sizes = !empty($product['sizes_available']);
         ?>
         <div class="product-card" data-id="<?= $product['id'] ?>">
@@ -233,8 +235,14 @@ $cart_count = $ctx['cart_count'];
 
             <div class="product-meta">
               <span class="product-price">₱<?= number_format($product['price'], 2) ?></span>
-              <span class="product-stock <?= $in_stock ? 'stock-ok' : 'stock-out' ?>">
-                <?= $in_stock ? $product['stock_quantity'] . ' in stock' : 'Out of stock' ?>
+              <span class="product-stock <?= !$in_stock ? 'stock-out' : ($is_low_stock ? 'stock-low' : 'stock-ok') ?>">
+                <?php if (!$in_stock): ?>
+                  Out of stock
+                <?php elseif ($is_low_stock): ?>
+                  Low stock (<?= $stock_qty ?> left)
+                <?php else: ?>
+                  <?= $stock_qty ?> in stock
+                <?php endif; ?>
               </span>
             </div>
 

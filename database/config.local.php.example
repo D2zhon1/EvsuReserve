@@ -1,0 +1,10 @@
+<?php
+/**
+ * Copy this file to config.local.php and edit for your machine.
+ */
+return [
+    'host'     => 'localhost',
+    'username' => 'root',
+    'password' => '',
+    'database' => 'evsu_reserve',
+];

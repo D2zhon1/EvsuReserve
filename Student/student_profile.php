@@ -19,7 +19,7 @@ require __DIR__ . '/_layout_top.php';
       </div>
     </div>
 
-    <div class="profile-card" style="max-width:520px;background:#fff;border-radius:12px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+    <div class="profile-card">
       <p><strong>Name:</strong> <?= htmlspecialchars($user['full_name']) ?></p>
       <p><strong>Student ID:</strong> <?= htmlspecialchars($user['student_id']) ?></p>
       <p><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>

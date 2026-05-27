@@ -13,33 +13,82 @@ function evsu_db_config(): array
     return $config;
 }
 
+function evsu_bootstrap_is_done(): bool
+{
+    return !empty($GLOBALS['evsu_bootstrap_done']);
+}
+
+function evsu_bootstrap_reset(): void
+{
+    $GLOBALS['evsu_bootstrap_done'] = false;
+}
+
+function evsu_bootstrap_fail(string $message): void
+{
+    evsu_bootstrap_reset();
+    http_response_code(500);
+    die(
+        '<h1>EVSU Reserve — Database setup failed</h1>'
+        . '<p>' . htmlspecialchars($message) . '</p>'
+        . '<p>Check that MySQL is running in XAMPP and credentials in '
+        . '<code>database/config.php</code> (or <code>config.local.php</code>) are correct.</p>'
+    );
+}
+
+function evsu_mysqli_connect_server(): mysqli
+{
+    $cfg = evsu_db_config();
+    mysqli_report(MYSQLI_REPORT_OFF);
+
+    try {
+        $conn = new mysqli($cfg['host'], $cfg['username'], $cfg['password']);
+    } catch (mysqli_sql_exception $e) {
+        evsu_bootstrap_fail('MySQL connection failed: ' . $e->getMessage());
+    }
+
+    if ($conn->connect_error) {
+        evsu_bootstrap_fail('MySQL connection failed: ' . $conn->connect_error);
+    }
+
+    $conn->set_charset('utf8mb4');
+    return $conn;
+}
+
+function evsu_database_exists(mysqli $server, string $database): bool
+{
+    $db = $server->real_escape_string($database);
+    $res = $server->query(
+        "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$db}' LIMIT 1"
+    );
+    return $res && $res->num_rows > 0;
+}
+
 function evsu_bootstrap_database(): void
 {
-    static $bootstrapped = false;
-    if ($bootstrapped) {
+    if (evsu_bootstrap_is_done()) {
         return;
     }
-    $bootstrapped = true;
 
     $cfg  = evsu_db_config();
-    $host = $cfg['host'];
-    $user = $cfg['username'];
-    $pass = $cfg['password'];
     $name = $cfg['database'];
 
-    $root = new mysqli($host, $user, $pass);
-    if ($root->connect_error) {
-        die('MySQL connection failed: ' . $root->connect_error);
-    }
-    $root->set_charset('utf8mb4');
+    $root = evsu_mysqli_connect_server();
 
     $safeName = $root->real_escape_string($name);
-    $root->query(
+    if (!$root->query(
         "CREATE DATABASE IF NOT EXISTS `{$safeName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-    );
-    $root->select_db($name);
+    )) {
+        evsu_bootstrap_fail('Could not create database: ' . $root->error);
+    }
 
+    if (!$root->select_db($name)) {
+        evsu_bootstrap_fail('Could not open database "' . htmlspecialchars($name) . '": ' . $root->error);
+    }
+
+    $root->query('SET FOREIGN_KEY_CHECKS = 0');
     evsu_run_schema($root);
+    $root->query('SET FOREIGN_KEY_CHECKS = 1');
+
     evsu_run_migrations($root);
 
     // Only seed default system settings (non-destructive — uses INSERT IGNORE).
@@ -47,6 +96,7 @@ function evsu_bootstrap_database(): void
     evsu_seed_default_settings($root);
 
     $root->close();
+    $GLOBALS['evsu_bootstrap_done'] = true;
 }
 
 function evsu_run_schema(mysqli $db): void
@@ -170,7 +220,7 @@ function evsu_run_schema(mysqli $db): void
 
     foreach ($statements as $sql) {
         if (!$db->query($sql)) {
-            die('Schema error: ' . $db->error);
+            evsu_bootstrap_fail('Schema error: ' . $db->error);
         }
     }
 }
@@ -260,22 +310,59 @@ function evsu_seed_default_settings(mysqli $db): void
 
 function evsu_db_connect(): mysqli
 {
-    evsu_bootstrap_database();
+    $cfg = evsu_db_config();
+    mysqli_report(MYSQLI_REPORT_OFF);
 
-    $cfg  = evsu_db_config();
-    $conn = new mysqli($cfg['host'], $cfg['username'], $cfg['password'], $cfg['database']);
-
-    if ($conn->connect_error) {
-        die('Connection failed: ' . $conn->connect_error);
+    if (!evsu_bootstrap_is_done()) {
+        evsu_bootstrap_database();
     }
-    $conn->set_charset('utf8mb4');
 
+    $connect = static function () use ($cfg): mysqli {
+        try {
+            $conn = new mysqli(
+                $cfg['host'],
+                $cfg['username'],
+                $cfg['password'],
+                $cfg['database']
+            );
+        } catch (mysqli_sql_exception $e) {
+            $conn = null;
+            $GLOBALS['evsu_last_db_error'] = $e->getMessage();
+        }
+
+        if ($conn instanceof mysqli && $conn->connect_error) {
+            $GLOBALS['evsu_last_db_error'] = $conn->connect_error;
+            return $conn;
+        }
+
+        return $conn;
+    };
+
+    $conn = $connect();
+
+    $needsInstall = !$conn
+        || $conn->connect_error
+        || (isset($GLOBALS['evsu_last_db_error'])
+            && stripos((string) $GLOBALS['evsu_last_db_error'], 'Unknown database') !== false);
+
+    if ($needsInstall) {
+        evsu_bootstrap_reset();
+        evsu_bootstrap_database();
+        $conn = $connect();
+    }
+
+    if (!$conn || $conn->connect_error) {
+        $msg = $conn->connect_error ?? ($GLOBALS['evsu_last_db_error'] ?? 'Unknown error');
+        evsu_bootstrap_fail('Connection failed: ' . $msg);
+    }
+
+    $conn->set_charset('utf8mb4');
     return $conn;
 }
 
 function evsu_pdo_connect(): PDO
 {
-    evsu_bootstrap_database();
+    evsu_db_connect();
     $cfg = evsu_db_config();
 
     return new PDO(
