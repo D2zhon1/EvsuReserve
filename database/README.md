@@ -9,7 +9,9 @@ When you copy this project to another PC:
 3. On first run it will:
    - Create the database `evsu_reserve` if it does not exist
    - Create all required tables (`CREATE TABLE IF NOT EXISTS`)
-   - Insert demo data only when the `users` table is empty (won't wipe your real data later)
+    - Leave tables EMPTY (no demo rows)
+
+Optional: enable demo seeding by setting environment variable `EVSU_SEED_DEMO=1`.
 
 No manual SQL import is required for normal use.
 

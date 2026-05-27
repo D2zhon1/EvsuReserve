@@ -32,7 +32,7 @@ foreach ($tables as $table) {
 }
 
 $users = (int) $server->query('SELECT COUNT(*) AS c FROM users')->fetch_assoc()['c'];
-echo "Demo users seeded: {$users}\n";
+echo "Users in table: {$users}\n";
 
 $conn = evsu_db_connect();
 echo "App connection OK. Database `{$name}` is ready.\n";

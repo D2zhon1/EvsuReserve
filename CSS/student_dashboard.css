@@ -354,6 +354,28 @@ html, body {
   animation: fadeUp .5s .25s ease both;
 }
 
+.profile-card {
+  max-width: 520px;
+  background: var(--white);
+  border-radius: 12px;
+  padding: 1.5rem 1.6rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+.profile-card p {
+  font-size: .9rem;
+  color: var(--text);
+  margin-bottom: .55rem;
+}
+.profile-card p:last-child {
+  margin-bottom: 0;
+}
+.profile-card strong {
+  display: inline-block;
+  min-width: 120px;
+  color: var(--muted);
+}
+
 .orders-card-header {
   display: flex;
   align-items: center;
