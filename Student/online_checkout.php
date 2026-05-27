@@ -68,7 +68,7 @@ if ($payment_method === 'cash') {
 // ONLINE PAYMENT → PAYMONGO
 //
 
-$paymonggo_key = "sk_test_1yseSc94ii5tdCStHN3uejEc";
+$secretKey = "sk_test_1yseSc94ii5tdCStHN3uejEc";
 
 $line_items = [];
 
@@ -133,7 +133,7 @@ curl_setopt_array($curl, [
         "accept: application/json",
         "content-type: application/json",
         "authorization: Basic " .
-        base64_encode($secretKey . ":")
+        base64_encode($_ENV['PAYMONGO_KEY'] . ":")
     ],
 
     CURLOPT_POSTFIELDS => $payload
