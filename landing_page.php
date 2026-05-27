@@ -1,3 +1,7 @@
+<?php
+require_once __DIR__ . '/database/bootstrap.php';
+evsu_bootstrap_database();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

@@ -49,6 +49,37 @@ $chk->close();
 $conn->begin_transaction();
 
 try {
+    // Lock product rows and verify enough stock before creating the order.
+    $stock_stmt = $conn->prepare('SELECT stock_quantity FROM products WHERE id = ? FOR UPDATE');
+    $deduct_stmt = $conn->prepare(
+        'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?'
+    );
+
+    foreach ($cart_items as $item) {
+        $pid = (int) $item['product_id'];
+        $qty = (int) $item['quantity'];
+
+        $stock_stmt->bind_param('i', $pid);
+        $stock_stmt->execute();
+        $stock_res = $stock_stmt->get_result()->fetch_assoc();
+        $current_stock = (int) ($stock_res['stock_quantity'] ?? 0);
+
+        if ($current_stock < $qty) {
+            throw new RuntimeException(
+                $item['product_name'] . ' does not have enough stock. Available: ' . $current_stock
+            );
+        }
+
+        $deduct_stmt->bind_param('iii', $qty, $pid, $qty);
+        $deduct_stmt->execute();
+        if ($deduct_stmt->affected_rows <= 0) {
+            throw new RuntimeException('Failed to reserve stock for ' . $item['product_name']);
+        }
+    }
+
+    $stock_stmt->close();
+    $deduct_stmt->close();
+
     $stmt = $conn->prepare(
         'INSERT INTO orders (order_number, user_id, total_amount, status, payment_status, notes)
          VALUES (?, ?, ?, \'pending\', \'pending\', ?)'
@@ -108,7 +139,7 @@ try {
     exit;
 } catch (Throwable $e) {
     $conn->rollback();
-    $_SESSION['toast_msg']  = 'Checkout failed. Please try again.';
+    $_SESSION['toast_msg']  = 'Checkout failed: ' . $e->getMessage();
     $_SESSION['toast_type'] = 'error';
     header('Location: student_cart.php');
     exit;

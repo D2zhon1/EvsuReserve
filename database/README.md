@@ -5,17 +5,25 @@
 When you copy this project to another PC:
 
 1. Start **Apache** and **MySQL** in XAMPP.
-2. Open any page that uses `database.php` (e.g. `login_page.php`).
-3. The app will **automatically**:
-   - Create the database `evsu_reserve` (if missing)
-   - Create all tables
-   - Insert demo users, products, orders, and payments (only on a fresh/empty database)
+2. Open **any** page (homepage, login, or register). The app runs `database/bootstrap.php` automatically.
+3. On first run it will:
+   - Create the database `evsu_reserve` if it does not exist
+   - Create all required tables (`CREATE TABLE IF NOT EXISTS`)
+   - Insert demo data only when the `users` table is empty (won't wipe your real data later)
 
 No manual SQL import is required for normal use.
 
+### Verify install (optional)
+
+```bash
+php c:\xampp\htdocs\EvsuReserve\database\test_bootstrap.php
+```
+
+This drops and recreates the database once to confirm auto-install works.
+
 ### Credentials
 
-Edit `database/config.php` if your MySQL user/password differs from XAMPP defaults (`root` with no password).
+Edit `database/config.php`, or copy `database/config.local.php.example` to `database/config.local.php` and edit there.
 
 Optional environment overrides: `EVSU_DB_HOST`, `EVSU_DB_USER`, `EVSU_DB_PASS`, `EVSU_DB_NAME`.
 
