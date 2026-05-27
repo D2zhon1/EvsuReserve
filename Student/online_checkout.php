@@ -68,7 +68,7 @@ if ($payment_method === 'cash') {
 // ONLINE PAYMENT → PAYMONGO
 //
 
-$secretKey = "sk_test_1yseSc94ii5tdCStHN3uejEc";
+$paymonggo_key = "sk_test_1yseSc94ii5tdCStHN3uejEc";
 
 $line_items = [];
 
