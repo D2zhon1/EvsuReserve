@@ -1,143 +1,43 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/../database.php';
+
 $user_name  = $_SESSION['user_name']  ?? 'Admin User';
 $first_name = explode(' ', $user_name)[0];
 
-// ── Filters ────────────────────────────────────────────────────────────────
 $search = trim($_GET['search'] ?? '');
 
-// ── Mock activity logs (replace with real DB query) ────────────────────────
-$all_logs = [
-    [
-        'id'           => 'LOG-001',
-        'action'       => 'User Login',
-        'user_email'   => 'juan.delacruz@evsu.edu.ph',
-        'user_role'    => 'student',
-        'details'      => 'Successful login from 192.168.1.10',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-5 minutes')),
-    ],
-    [
-        'id'           => 'LOG-002',
-        'action'       => 'Payment Verified',
-        'user_email'   => 'maria.santos@evsu.edu.ph',
-        'user_role'    => 'cashier',
-        'details'      => 'Payment PAY-006 for ORD-2026-0137 verified. Amount: ₱960.00',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-18 minutes')),
-    ],
-    [
-        'id'           => 'LOG-003',
-        'action'       => 'Order Placed',
-        'user_email'   => 'ana.reyes@evsu.edu.ph',
-        'user_role'    => 'student',
-        'details'      => 'New order ORD-2026-0146 placed. Total: ₱350.00',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-34 minutes')),
-    ],
-    [
-        'id'           => 'LOG-004',
-        'action'       => 'Product Updated',
-        'user_email'   => 'carmen.lopez@evsu.edu.ph',
-        'user_role'    => 'staff',
-        'details'      => 'Stock updated for PE Uniform (ID: P001). New stock: 45 units.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-1 hour')),
-    ],
-    [
-        'id'           => 'LOG-005',
-        'action'       => 'Payment Rejected',
-        'user_email'   => 'jose.reyes@evsu.edu.ph',
-        'user_role'    => 'cashier',
-        'details'      => 'Payment PAY-008 rejected. Reason: Unreadable proof of payment.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-2 hours')),
-    ],
-    [
-        'id'           => 'LOG-006',
-        'action'       => 'User Registered',
-        'user_email'   => 'paolo.cruz@evsu.edu.ph',
-        'user_role'    => 'student',
-        'details'      => 'New student account created and verified.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-3 hours')),
-    ],
-    [
-        'id'           => 'LOG-007',
-        'action'       => 'Order Status Updated',
-        'user_email'   => 'ramon.torres@evsu.edu.ph',
-        'user_role'    => 'staff',
-        'details'      => 'Order ORD-2026-0143 status changed from processing → ready for pickup.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-4 hours')),
-    ],
-    [
-        'id'           => 'LOG-008',
-        'action'       => 'Product Added',
-        'user_email'   => 'elena.garcia@evsu.edu.ph',
-        'user_role'    => 'staff',
-        'details'      => 'New product "Safety Goggles" (P006) added to catalog. Price: ₱120.00.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-5 hours')),
-    ],
-    [
-        'id'           => 'LOG-009',
-        'action'       => 'User Login Failed',
-        'user_email'   => 'unknown@evsu.edu.ph',
-        'user_role'    => '',
-        'details'      => 'Failed login attempt. Invalid credentials. IP: 203.177.12.54',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-6 hours')),
-    ],
-    [
-        'id'           => 'LOG-010',
-        'action'       => 'Order Cancelled',
-        'user_email'   => 'rica.morales@evsu.edu.ph',
-        'user_role'    => 'student',
-        'details'      => 'Order ORD-2026-0134 cancelled by student.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-8 hours')),
-    ],
-    [
-        'id'           => 'LOG-011',
-        'action'       => 'Report Generated',
-        'user_email'   => 'maria.santos@evsu.edu.ph',
-        'user_role'    => 'cashier',
-        'details'      => 'Sales report generated for period: Last 30 days.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-1 day')),
-    ],
-    [
-        'id'           => 'LOG-012',
-        'action'       => 'Password Changed',
-        'user_email'   => 'liza.fernandez@evsu.edu.ph',
-        'user_role'    => 'student',
-        'details'      => 'Account password updated successfully.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-1 day -2 hours')),
-    ],
-    [
-        'id'           => 'LOG-013',
-        'action'       => 'User Role Updated',
-        'user_email'   => 'admin@evsu.edu.ph',
-        'user_role'    => 'admin',
-        'details'      => 'Role for jose.reyes@evsu.edu.ph changed from student → cashier.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-2 days')),
-    ],
-    [
-        'id'           => 'LOG-014',
-        'action'       => 'Cart Updated',
-        'user_email'   => 'mark.bautista@evsu.edu.ph',
-        'user_role'    => 'student',
-        'details'      => 'Added 2× Polo Shirt to cart.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-2 days -4 hours')),
-    ],
-    [
-        'id'           => 'LOG-015',
-        'action'       => 'System Backup',
-        'user_email'   => 'admin@evsu.edu.ph',
-        'user_role'    => 'admin',
-        'details'      => 'Scheduled database backup completed successfully.',
-        'created_date' => date('Y-m-d H:i:s', strtotime('-3 days')),
-    ],
-];
+$all_logs = [];
+$sql = 'SELECT id, action, user_email, user_role, details, created_at AS created_date
+        FROM activity_logs WHERE 1=1';
+$types  = '';
+$params = [];
 
-// ── Apply search filter ────────────────────────────────────────────────────
-$filtered_logs = array_filter($all_logs, function ($log) use ($search) {
-    if ($search === '') return true;
-    return stripos($log['action'],     $search) !== false
-        || stripos($log['user_email'], $search) !== false
-        || stripos($log['details'],    $search) !== false;
-});
+if ($search !== '') {
+    $sql     .= ' AND (action LIKE ? OR user_email LIKE ? OR details LIKE ? OR user_role LIKE ?)';
+    $types   .= 'ssss';
+    $like     = '%' . $search . '%';
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+}
+$sql .= ' ORDER BY created_at DESC LIMIT 200';
+
+$stmt = $conn->prepare($sql);
+if ($types !== '') {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $row['id'] = 'LOG-' . str_pad($row['id'], 3, '0', STR_PAD_LEFT);
+    $all_logs[] = $row;
+}
+$stmt->close();
+
+$filtered_logs = $all_logs;
 
 // ── Action → colour tag mapping ────────────────────────────────────────────
 function action_tag(string $action): string {
@@ -217,24 +117,7 @@ function time_ago(string $datetime): string {
       </svg>
       Users
     </a>
-    <a href="admin_products.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 0 1-8 0"/>
-      </svg>
-      Products
-    </a>
-    <a href="admin_orders.php" class="nav-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/>
-      </svg>
-      Orders
-    </a>
+
     <a href="admin_reports.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -255,10 +138,19 @@ function time_ago(string $datetime): string {
       </svg>
       Activity Logs
     </a>
+
+    <a href="admin_settings.php" class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+      </svg>
+      Settings
+    </a>
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="logout.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

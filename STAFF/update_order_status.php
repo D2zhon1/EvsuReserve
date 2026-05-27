@@ -1,26 +1,38 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 
-// Read JSON body or fallback to form data
-$raw = file_get_contents('php://input');
+require_once __DIR__ . '/../database.php';
+
+$raw   = file_get_contents('php://input');
 $input = json_decode($raw, true);
 if (!is_array($input)) {
     $input = $_POST;
 }
 
-$id = $input['id'] ?? null;
-$status = $input['status'] ?? null;
+$id     = isset($input['id']) ? (int) $input['id'] : 0;
+$status = $input['status'] ?? '';
 
-$allowed = ['pending','paid','processing','ready','completed','cancelled'];
+$allowed = ['pending', 'paid', 'processing', 'ready', 'completed', 'cancelled'];
 
-if (!$id || !$status || !in_array($status, $allowed, true)) {
+if ($id <= 0 || !in_array($status, $allowed, true)) {
     echo json_encode(['success' => false, 'error' => 'Invalid input']);
     exit;
 }
 
-// In a real app: update DB here. For now, log the update for debugging.
-$logLine = sprintf("[%s] status update: id=%s status=%s\n", date('c'), $id, $status);
-$file = __DIR__ . '/status_updates.log';
-@file_put_contents($file, $logLine, FILE_APPEND | LOCK_EX);
+$stmt = $conn->prepare('UPDATE orders SET status = ? WHERE id = ?');
+$stmt->bind_param('si', $status, $id);
+$ok = $stmt->execute();
+$stmt->close();
 
-echo json_encode(['success' => true]);
+if ($ok) {
+    evsu_log_activity(
+        $conn,
+        'Order Status Updated',
+        $_SESSION['user_email'] ?? '',
+        $_SESSION['role'] ?? 'staff',
+        "Order #{$id} status set to {$status}"
+    );
+}
+
+echo json_encode(['success' => $ok]);

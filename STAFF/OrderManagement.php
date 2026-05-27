@@ -1,118 +1,43 @@
 <?php
 session_start();
 
-// ── Mock data — replace with real DB queries ──────────────────────────────
-$orders = [
-    [
-        'id'             => 'a1b2c3',
-        'order_number'   => 'ORD-001',
-        'customer_name'  => 'Juan dela Cruz',
-        'customer_email' => 'juan@evsu.edu.ph',
-        'total_amount'   => 1250.00,
-        'payment_method' => 'GCash',
-        'payment_status' => 'paid',
-        'status'         => 'processing',
-        'created_date'   => '2026-05-15',
-        'notes'          => 'Please double-check size.',
-        'items'          => [
-            ['product_name' => 'EVSU Polo Shirt', 'size' => 'L',  'quantity' => 2, 'subtotal' => 900.00],
-            ['product_name' => 'College Pin',     'size' => '',   'quantity' => 1, 'subtotal' => 350.00],
-        ],
-    ],
-    [
-        'id'             => 'd4e5f6',
-        'order_number'   => 'ORD-002',
-        'customer_name'  => 'Ana Reyes',
-        'customer_email' => 'ana@evsu.edu.ph',
-        'total_amount'   => 350.00,
-        'payment_method' => 'Cash',
-        'payment_status' => 'pending',
-        'status'         => 'pending',
-        'created_date'   => '2026-05-15',
-        'notes'          => '',
-        'items'          => [
-            ['product_name' => 'PE Uniform Set', 'size' => 'M', 'quantity' => 1, 'subtotal' => 350.00],
-        ],
-    ],
-    [
-        'id'             => 'g7h8i9',
-        'order_number'   => 'ORD-003',
-        'customer_name'  => 'Carlo Mendoza',
-        'customer_email' => 'carlo@evsu.edu.ph',
-        'total_amount'   => 780.00,
-        'payment_method' => 'GCash',
-        'payment_status' => 'paid',
-        'status'         => 'ready',
-        'created_date'   => '2026-05-14',
-        'notes'          => '',
-        'items'          => [
-            ['product_name' => 'Laboratory Gown', 'size' => 'M', 'quantity' => 2, 'subtotal' => 780.00],
-        ],
-    ],
-    [
-        'id'             => 'j0k1l2',
-        'order_number'   => 'ORD-004',
-        'customer_name'  => 'Liza Gomez',
-        'customer_email' => 'liza@evsu.edu.ph',
-        'total_amount'   => 2100.00,
-        'payment_method' => 'Bank Transfer',
-        'payment_status' => 'paid',
-        'status'         => 'completed',
-        'created_date'   => '2026-05-13',
-        'notes'          => '',
-        'items'          => [
-            ['product_name' => 'EVSU Polo Shirt', 'size' => 'S',  'quantity' => 2, 'subtotal' => 900.00],
-            ['product_name' => 'PE Uniform Set',  'size' => 'S',  'quantity' => 2, 'subtotal' => 700.00],
-            ['product_name' => 'College Pin',     'size' => '',   'quantity' => 2, 'subtotal' => 500.00],
-        ],
-    ],
-    [
-        'id'             => 'm3n4o5',
-        'order_number'   => 'ORD-005',
-        'customer_name'  => 'Mark Villanueva',
-        'customer_email' => 'mark@evsu.edu.ph',
-        'total_amount'   => 420.00,
-        'payment_method' => 'GCash',
-        'payment_status' => 'refunded',
-        'status'         => 'cancelled',
-        'created_date'   => '2026-05-12',
-        'notes'          => 'Customer requested cancellation.',
-        'items'          => [
-            ['product_name' => 'EVSU Polo Shirt', 'size' => 'XL', 'quantity' => 1, 'subtotal' => 420.00],
-        ],
-    ],
-    [
-        'id'             => 'p6q7r8',
-        'order_number'   => 'ORD-006',
-        'customer_name'  => 'Jenny Castro',
-        'customer_email' => 'jenny@evsu.edu.ph',
-        'total_amount'   => 660.00,
-        'payment_method' => 'Cash',
-        'payment_status' => 'pending',
-        'status'         => 'pending',
-        'created_date'   => '2026-05-12',
-        'notes'          => '',
-        'items'          => [
-            ['product_name' => 'PE Uniform Set', 'size' => 'L', 'quantity' => 1, 'subtotal' => 350.00],
-            ['product_name' => 'College Pin',    'size' => '',  'quantity' => 1, 'subtotal' => 310.00],
-        ],
-    ],
-    [
-        'id'             => 's9t0u1',
-        'order_number'   => 'ORD-007',
-        'customer_name'  => 'Rico Santos',
-        'customer_email' => 'rico@evsu.edu.ph',
-        'total_amount'   => 290.00,
-        'payment_method' => 'GCash',
-        'payment_status' => 'paid',
-        'status'         => 'paid',
-        'created_date'   => '2026-05-11',
-        'notes'          => '',
-        'items'          => [
-            ['product_name' => 'Laboratory Gown', 'size' => 'L', 'quantity' => 1, 'subtotal' => 290.00],
-        ],
-    ],
-];
+require_once __DIR__ . '/../database.php';
+
+$orders = [];
+$res = $conn->query(
+    "SELECT o.id, o.order_number, u.full_name AS customer_name, u.email AS customer_email,
+            o.total_amount, o.payment_status, o.status, DATE(o.created_at) AS created_date,
+            COALESCE(o.notes, '') AS notes,
+            (SELECT p.method FROM payments p WHERE p.order_id = o.id ORDER BY p.id DESC LIMIT 1) AS payment_method
+     FROM orders o
+     JOIN users u ON u.id = o.user_id
+     ORDER BY o.created_at DESC"
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['id'] = (string) $row['id'];
+        $row['total_amount'] = (float) $row['total_amount'];
+        $row['payment_method'] = $row['payment_method'] ?? 'Cash';
+        $order_id = (int) $row['id'];
+
+        $items = [];
+        $istmt = $conn->prepare(
+            'SELECT product_name, COALESCE(size, \'\') AS size, quantity, subtotal FROM order_items WHERE order_id = ?'
+        );
+        $istmt->bind_param('i', $order_id);
+        $istmt->execute();
+        $ires = $istmt->get_result();
+        while ($item = $ires->fetch_assoc()) {
+            $item['subtotal'] = (float) $item['subtotal'];
+            $item['quantity'] = (int) $item['quantity'];
+            $items[] = $item;
+        }
+        $istmt->close();
+
+        $row['items'] = $items;
+        $orders[] = $row;
+    }
+}
 
 $status_flow = ['pending', 'paid', 'processing', 'ready', 'completed', 'cancelled'];
 
@@ -127,9 +52,9 @@ $orders_json = json_encode($orders);
   <title>Order Management — EVSU Reserve</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/CSS/student_dashboard.css"/>
-  <link rel="stylesheet" href="/CSS/StaffDashboard.css"/>
-  <link rel="stylesheet" href="/CSS/OrderManagement.css"/>
+  <link rel="stylesheet" href="../CSS/student_dashboard.css"/>
+  <link rel="stylesheet" href="../CSS/StaffDashboard.css"/>
+  <link rel="stylesheet" href="../CSS/OrderManagement.css"/>
 </head>
 <body>
 
@@ -196,7 +121,7 @@ $orders_json = json_encode($orders);
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="logout.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

@@ -1,41 +1,12 @@
 <?php
 session_start();
-include '../database.php';
+require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/auth.php';
 
-/* CHECK LOGIN SESSION */
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login_page.php");
-    exit();
-}
-$user_id = $_SESSION['user_id'];
-
-/* ─────────────────────────────────────────────
-   GET USER INFORMATION
-───────────────────────────────────────────── */
-$user_query = $conn->prepare("
-    SELECT full_name
-    FROM users
-    WHERE id = ?
-");
-
-$user_query->bind_param("i", $user_id);
-$user_query->execute();
-
-$user_result = $user_query->get_result();
-
-if ($user_result->num_rows > 0) {
-
-    $user = $user_result->fetch_assoc();
-
-    $user_name  = $user['full_name'];
-    $first_name = explode(' ', $user_name)[0];
-
-} else {
-
-    session_destroy();
-    header("Location: login.php");
-    exit();
-}
+$ctx        = evsu_student_init($conn);
+$user_id    = $ctx['user_id'];
+$user_name  = $ctx['user_name'];
+$first_name = $ctx['first_name'];
 
 /* ─────────────────────────────────────────────
    TOTAL ORDERS
@@ -91,8 +62,8 @@ $completed_orders = $completed_result['completed_orders'];
    CART ITEMS
 ───────────────────────────────────────────── */
 $cart_query = $conn->prepare("
-    SELECT COUNT(*) AS cart_items
-    FROM cart
+    SELECT COALESCE(SUM(quantity), 0) AS cart_items
+    FROM cart_items
     WHERE user_id = ?
 ");
 
@@ -101,13 +72,14 @@ $cart_query->execute();
 
 $cart_result = $cart_query->get_result()->fetch_assoc();
 
-$cart_items = $cart_result['cart_items'];
+$cart_items = (int) $cart_result['cart_items'];
 
 /* ─────────────────────────────────────────────
    RECENT ORDERS
 ───────────────────────────────────────────── */
 $recent_query = $conn->prepare("
     SELECT
+        id,
         order_number,
         status,
         total_amount,
@@ -127,14 +99,14 @@ $recent_orders = [];
 
 while ($row = $recent_result->fetch_assoc()) {
 
-    /* COUNT ITEMS PER ORDER */
     $items_query = $conn->prepare("
-        SELECT COUNT(*) AS total_items
+        SELECT COALESCE(SUM(quantity), 0) AS total_items
         FROM order_items
-        WHERE order_number = ?
+        WHERE order_id = ?
     ");
 
-    $items_query->bind_param("s", $row['order_number']);
+    $order_id = (int) $row['id'];
+    $items_query->bind_param("i", $order_id);
     $items_query->execute();
 
     $items_result = $items_query->get_result()->fetch_assoc();
@@ -204,7 +176,7 @@ $status_config = [
   </div>
 
   <nav class="sidebar-nav">
-    <a href="dashboard.php" class="nav-item active">
+    <a href="student_dashboard.php" class="nav-item active">
       <!-- Home -->
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2"
@@ -225,7 +197,7 @@ $status_config = [
       </svg>
       Products
     </a>
-    <a href="orders.php" class="nav-item">
+    <a href="student_orders.php" class="nav-item">
       <!-- ClipboardList -->
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2"
@@ -249,7 +221,7 @@ $status_config = [
         <span class="nav-badge"><?= $cart_items ?></span>
       <?php endif; ?>
     </a>
-    <a href="profile.php" class="nav-item">
+    <a href="student_profile.php" class="nav-item">
       <!-- User -->
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2"
@@ -262,7 +234,7 @@ $status_config = [
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="../landing_page.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <!-- LogOut -->
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2"
@@ -291,7 +263,7 @@ $status_config = [
       </svg>
     </button>
     <div class="topbar-right">
-      <a href="cart.php" class="topbar-cart">
+      <a href="student_cart.php" class="topbar-cart">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
              fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round">
@@ -318,7 +290,7 @@ $status_config = [
         <h1 class="page-title">Welcome back, <?= htmlspecialchars($first_name) ?>!</h1>
         <p class="page-sub">Your EVSU Reserve dashboard</p>
       </div>
-      <a href="student.product.php" class="btn-shop">
+      <a href="student_product.php" class="btn-shop">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
              fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round">
@@ -400,7 +372,7 @@ $status_config = [
     <div class="orders-card">
       <div class="orders-card-header">
         <h2 class="orders-title">Recent Orders</h2>
-        <a href="orders.php" class="view-all-link">View all</a>
+        <a href="student_orders.php" class="view-all-link">View all</a>
       </div>
 
       <?php if (empty($recent_orders)): ?>

@@ -1,26 +1,40 @@
 <?php
 session_start();
 
-// ── Mock products (replace with real DB queries) ───────────────────────────
+require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/auth.php';
+
+$ctx        = evsu_student_init($conn);
+$first_name = $ctx['first_name'];
+$user_name  = $ctx['user_name'];
+
 $category_labels = [
     'uniform'       => 'Uniforms',
+    'uniforms'      => 'Uniforms',
     'id_sling'      => 'ID Slings',
     'booklet'       => 'Booklets',
     'school_supply' => 'School Supplies',
     'merchandise'   => 'Merchandise',
+    'accessories'   => 'Accessories',
+    'general'       => 'General',
     'other'         => 'Other',
 ];
 
-$products = [
-    ['id'=>1,'name'=>'PE Uniform Set','description'=>'Official EVSU PE uniform. Includes shirt and shorts.','category'=>'uniform','price'=>450.00,'stock_quantity'=>40,'sizes_available'=>['XS','S','M','L','XL','XXL'],'image_url'=>''],
-    ['id'=>2,'name'=>'EVSU ID Sling','description'=>'Durable EVSU-branded ID sling with card holder.','category'=>'id_sling','price'=>85.00,'stock_quantity'=>120,'sizes_available'=>[],'image_url'=>''],
-    ['id'=>3,'name'=>'Laboratory Manual','description'=>'General Chemistry laboratory manual, 2026 edition.','category'=>'booklet','price'=>65.00,'stock_quantity'=>75,'sizes_available'=>[],'image_url'=>''],
-    ['id'=>4,'name'=>'Engineering Uniform','description'=>'Official EVSU College of Engineering polo shirt.','category'=>'uniform','price'=>380.00,'stock_quantity'=>25,'sizes_available'=>['S','M','L','XL','XXL'],'image_url'=>''],
-    ['id'=>5,'name'=>'EVSU Tote Bag','description'=>'Canvas tote bag with EVSU logo. Eco-friendly and durable.','category'=>'merchandise','price'=>120.00,'stock_quantity'=>60,'sizes_available'=>[],'image_url'=>''],
-    ['id'=>6,'name'=>'Ballpen Set (5pcs)','description'=>'Blue and black ballpens, smooth-writing.','category'=>'school_supply','price'=>35.00,'stock_quantity'=>200,'sizes_available'=>[],'image_url'=>''],
-    ['id'=>7,'name'=>'Nursing Uniform','description'=>'Official EVSU College of Nursing uniform set.','category'=>'uniform','price'=>520.00,'stock_quantity'=>18,'sizes_available'=>['XS','S','M','L','XL'],'image_url'=>''],
-    ['id'=>8,'name'=>'EVSU Lanyard','description'=>'Premium woven lanyard with safety clip.','category'=>'id_sling','price'=>55.00,'stock_quantity'=>0,'sizes_available'=>[],'image_url'=>''],
-];
+$products = [];
+$res = $conn->query(
+    'SELECT id, name, description, category, unit_price AS price, stock_quantity,
+            sizes_available, COALESCE(image_url, \'\') AS image_url
+     FROM products WHERE is_active = 1 ORDER BY name'
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['price'] = (float) $row['price'];
+        $row['stock_quantity'] = (int) $row['stock_quantity'];
+        $sizes = trim($row['sizes_available'] ?? '');
+        $row['sizes_available'] = $sizes !== '' ? explode(',', $sizes) : [];
+        $products[] = $row;
+    }
+}
 
 // Active filter from GET
 $active_category = $_GET['category'] ?? 'all';
@@ -35,9 +49,7 @@ $filtered = array_filter($products, function($p) use ($active_category, $search_
     return $match_cat && $match_search;
 });
 
-$cart_count = $_SESSION['cart_count'] ?? 3; // replace with real cart count
-$user_name  = $_SESSION['user_name'] ?? 'Student';
-$first_name = explode(' ', $user_name)[0];
+$cart_count = $ctx['cart_count'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,11 +86,11 @@ $first_name = explode(' ', $user_name)[0];
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Dashboard
     </a>
-    <a href="products.php" class="nav-item active">
+    <a href="student_product.php" class="nav-item active">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       Products
     </a>
-    <a href="orders.php" class="nav-item">
+    <a href="student_orders.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
       My Orders
     </a>
@@ -89,13 +101,13 @@ $first_name = explode(' ', $user_name)[0];
         <span class="nav-badge"><?= $cart_count ?></span>
       <?php endif; ?>
     </a>
-    <a href="profile.php" class="nav-item">
+    <a href="student_profile.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Profile
     </a>
   </nav>
   <div class="sidebar-bottom">
-    <a href="../landing_page.php" class="nav-item nav-logout">
+    <a href="../logout.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Sign Out
     </a>
@@ -109,7 +121,7 @@ $first_name = explode(' ', $user_name)[0];
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <div class="topbar-right">
-      <a href="cart.php" class="topbar-cart">
+      <a href="student_cart.php" class="topbar-cart">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <?php if ($cart_count > 0): ?>
           <span class="cart-dot"><?= $cart_count ?></span>
@@ -133,7 +145,7 @@ $first_name = explode(' ', $user_name)[0];
     </div>
 
     <!-- Filters -->
-    <form method="GET" action="products.php" class="filters-bar" id="filter-form">
+    <form method="GET" action="student_product.php" class="filters-bar" id="filter-form">
       <div class="search-wrap">
         <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -150,10 +162,10 @@ $first_name = explode(' ', $user_name)[0];
         />
       </div>
       <div class="category-tabs">
-        <a href="products.php?category=all&search=<?= urlencode($search_query) ?>"
+        <a href="student_product.php?category=all&search=<?= urlencode($search_query) ?>"
            class="cat-tab <?= $active_category === 'all' ? 'active' : '' ?>">All</a>
         <?php foreach ($category_labels as $key => $label): ?>
-          <a href="products.php?category=<?= $key ?>&search=<?= urlencode($search_query) ?>"
+          <a href="student_product.php?category=<?= $key ?>&search=<?= urlencode($search_query) ?>"
              class="cat-tab <?= $active_category === $key ? 'active' : '' ?>"><?= $label ?></a>
         <?php endforeach; ?>
       </div>
@@ -177,7 +189,7 @@ $first_name = explode(' ', $user_name)[0];
         </svg>
         <p class="empty-title">No products found</p>
         <p class="empty-sub">Try adjusting your search or filter.</p>
-        <a href="products.php" class="btn-shop btn-shop-sm">Clear Filters</a>
+        <a href="student_product.php" class="btn-shop btn-shop-sm">Clear Filters</a>
       </div>
 
     <?php else: ?>

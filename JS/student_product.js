@@ -57,8 +57,7 @@ function addToCart(productId, productName, price, hasSizes) {
       }
     })
     .catch(() => {
-      // Fallback: show success anyway (no server yet)
-      showToast(`"${productName}" added to cart!`, 'success');
+      showToast('Could not reach server. Check that you are logged in.', 'error');
     });
 }
 
