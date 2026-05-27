@@ -64,6 +64,9 @@ VALUES
 (?,?,?,?,?,?)
 ");
 
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}   
 $stmt->bind_param(
     "isdsss",
     $user_id,

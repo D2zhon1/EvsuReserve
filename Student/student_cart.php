@@ -227,7 +227,7 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
           </div>
 
           <!-- Checkout form -->
-          <form method="POST" action="checkout.php"
+          <form method="POST" action="online_checkout.php"
                 enctype="multipart/form-data" id="checkout-form">
 
             <!-- Payment method -->

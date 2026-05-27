@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../environment.php';
 require_once __DIR__ . '/../includes/auth.php';
 
 $ctx = evsu_student_init($conn);
@@ -69,6 +70,7 @@ if ($payment_method === 'cash') {
 //
 
 
+
 $line_items = [];
 
 foreach ($cart_items as $item) {
@@ -116,7 +118,7 @@ $data = [
 ];
 
 $payload = json_encode($data);
-
+print_r($_ENV['PAYMONGO_KEY']);
 $curl = curl_init();
 
 curl_setopt_array($curl, [
