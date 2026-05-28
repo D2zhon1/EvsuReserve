@@ -88,6 +88,7 @@ try {
     );
     $pay_stmt->bind_param('sisds', $pay_code, $order_id, $online_method, $total, $reference_number);
     $pay_stmt->execute();
+    $payment_id = (int) $conn->insert_id;
     $pay_stmt->close();
 
     $del = $conn->prepare('DELETE FROM cart_items WHERE user_id = ?');
@@ -97,6 +98,11 @@ try {
 
     $conn->commit();
     unset($_SESSION['pending_order']);
+
+    $_SESSION['toast_msg'] = 'Online payment recorded successfully.';
+    $_SESSION['toast_type'] = 'success';
+    header('Location: payment_receipt.php?payment_id=' . $payment_id);
+    exit;
 } catch (Throwable $e) {
     $conn->rollback();
     $_SESSION['toast_msg'] = 'Online checkout failed: ' . $e->getMessage();
