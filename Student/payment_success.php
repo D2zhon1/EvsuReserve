@@ -16,128 +16,95 @@ if (!$pending_order || ($pending_order['payment_method'] ?? '') !== 'online') {
 //
 // GET CART
 //
-
-$stmt = $conn->prepare("
-    SELECT *
-    FROM cart_items
-    WHERE user_id = ?
-");
-
-$stmt->bind_param("i", $user_id);
+$stmt = $conn->prepare(
+    'SELECT id, product_id, product_name, unit_price, size, quantity
+     FROM cart_items
+     WHERE user_id = ?'
+);
+$stmt->bind_param('i', $user_id);
 $stmt->execute();
+$cart_items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
-$result = $stmt->get_result();
-
-$cart_items = [];
-$total = 0;
-
-while ($row = $result->fetch_assoc()) {
-
-    $cart_items[] = $row;
-
-    $total +=
-    $row['unit_price'] * $row['quantity'];
+if (count($cart_items) === 0) {
+    header('Location: student_cart.php');
+    exit;
 }
 
-$stmt->close();
-
-//
-// CREATE ORDER
-//
-
-$order_number =
-"ORD-" . time();
-
-$status = "paid";
-
-$payment_method = "online";
-
-$notes =
-$_SESSION['pending_order']['notes'] ?? '';
-
-$stmt = $conn->prepare("
-INSERT INTO orders
-(
-    user_id,
-    order_number,
-    total_amount,
-    payment_method,
-    payment_status,
-    notes
-)
-VALUES
-(?,?,?,?,?,?)
-");
-
-if (!$stmt) {
-    die("Prepare failed: " . $conn->error);
-}   
-$stmt->bind_param(
-    "isdsss",
-    $user_id,
-    $order_number,
-    $total,
-    $payment_method,
-    $status,
-    $notes
-);
-
-$stmt->execute();
-
-$order_id = $stmt->insert_id;
-
-$stmt->close();
-
-//
-// INSERT ORDER ITEMS
-//
-
+$total = 0.0;
 foreach ($cart_items as $item) {
+    $total += (float) $item['unit_price'] * (int) $item['quantity'];
+}
 
-    $stmt = $conn->prepare("
-    INSERT INTO order_items
-    (
-        order_id,
-        product_id,
-        product_name,
-        quantity,
-        unit_price,
-        size
-    )
-    VALUES
-    (?,?,?,?,?,?)
-    ");
+$order_number = 'ORD-' . date('Y') . '-' . str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+$chk = $conn->prepare('SELECT id FROM orders WHERE order_number = ? LIMIT 1');
+$chk->bind_param('s', $order_number);
+$chk->execute();
+if ($chk->get_result()->num_rows > 0) {
+    $order_number = 'ORD-' . date('Y') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+}
+$chk->close();
 
-    $stmt->bind_param(
-        "iisids",
-        $order_id,
-        $item['product_id'],
-        $item['product_name'],
-        $item['quantity'],
-        $item['unit_price'],
-        $item['size']
+$notes = trim((string) ($pending_order['notes'] ?? ''));
+$reference_number = trim((string) ($_GET['session_id'] ?? $pending_order['reference_number'] ?? ''));
+$online_method = trim((string) ($pending_order['online_method'] ?? 'GCash'));
+if (!in_array($online_method, ['GCash', 'PayMaya', 'Bank Transfer'], true)) {
+    $online_method = 'GCash';
+}
+
+$conn->begin_transaction();
+
+try {
+    $stmt = $conn->prepare(
+        'INSERT INTO orders (order_number, user_id, total_amount, status, payment_status, notes)
+         VALUES (?, ?, ?, \'pending\', \'pending\', ?)'
     );
-
+    $stmt->bind_param('sids', $order_number, $user_id, $total, $notes);
     $stmt->execute();
-
+    $order_id = (int) $conn->insert_id;
     $stmt->close();
 }
 
-//
-// CLEAR CART
-//
+    $item_stmt = $conn->prepare(
+        'INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price, subtotal)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
 
-$stmt = $conn->prepare("
-DELETE FROM cart_items
-WHERE user_id = ?
-");
+    foreach ($cart_items as $item) {
+        $subtotal = (float) $item['unit_price'] * (int) $item['quantity'];
+        $pid      = (int) $item['product_id'];
+        $pname    = $item['product_name'];
+        $size     = $item['size'];
+        $qty      = (int) $item['quantity'];
+        $price    = (float) $item['unit_price'];
+        $item_stmt->bind_param('iissidd', $order_id, $pid, $pname, $size, $qty, $price, $subtotal);
+        $item_stmt->execute();
+    }
+    $item_stmt->close();
 
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
+    $pay_code = 'PAY-' . str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+    $pay_stmt = $conn->prepare(
+        'INSERT INTO payments (payment_code, order_id, method, amount, status, reference_number)
+         VALUES (?, ?, ?, ?, \'pending\', ?)'
+    );
+    $pay_stmt->bind_param('sisds', $pay_code, $order_id, $online_method, $total, $reference_number);
+    $pay_stmt->execute();
+    $pay_stmt->close();
 
-$stmt->close();
+    $del = $conn->prepare('DELETE FROM cart_items WHERE user_id = ?');
+    $del->bind_param('i', $user_id);
+    $del->execute();
+    $del->close();
 
-unset($_SESSION['pending_order']);
+    $conn->commit();
+    unset($_SESSION['pending_order']);
+} catch (Throwable $e) {
+    $conn->rollback();
+    $_SESSION['toast_msg'] = 'Online checkout failed: ' . $e->getMessage();
+    $_SESSION['toast_type'] = 'error';
+    header('Location: student_cart.php');
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
