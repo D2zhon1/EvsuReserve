@@ -11,8 +11,10 @@ $cart_count = $ctx['cart_count'];
 $orders = [];
 $stmt = $conn->prepare(
     "SELECT o.order_number, o.status, o.payment_status, o.total_amount, o.created_at,
+            p.id AS payment_id,
             (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count
      FROM orders o
+     LEFT JOIN payments p ON p.order_id = o.id
      WHERE o.user_id = ?
      ORDER BY o.created_at DESC"
 );
@@ -40,7 +42,23 @@ $status_config = [
 $active_nav = 'orders';
 require __DIR__ . '/_layout_top.php';
 ?>
-
+    <style>
+      a.receipt-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        color: #111;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.15s;
+      }
+      a.receipt-btn:hover { background: #f9fafb; }
+    </style>
     <div class="page-header">
       <div>
         <h1 class="page-title">My Orders</h1>
@@ -71,6 +89,7 @@ require __DIR__ . '/_layout_top.php';
                 <th>Total</th>
                 <th>Status</th>
                 <th>Payment</th>
+                <th>Receipt</th>
               </tr>
             </thead>
             <tbody>
@@ -84,6 +103,13 @@ require __DIR__ . '/_layout_top.php';
                 <td>₱<?= number_format($o['total_amount'], 2) ?></td>
                 <td><span class="badge <?= $sc['class'] ?>"><?= htmlspecialchars($sc['label']) ?></span></td>
                 <td><?= htmlspecialchars(ucfirst($o['payment_status'])) ?></td>
+                <td>
+                  <?php if (!empty($o['payment_id'])): ?>
+                    <a class="receipt-btn" href="payment_receipt.php?payment_id=<?= (int) $o['payment_id'] ?>">View Receipt</a>
+                  <?php else: ?>
+                    <span style="color:#9ca3af;">N/A</span>
+                  <?php endif; ?>
+                </td>
               </tr>
               <?php endforeach; ?>
             </tbody>

@@ -63,6 +63,7 @@ try {
     $stmt->execute();
     $order_id = (int) $conn->insert_id;
     $stmt->close();
+}
 
     $item_stmt = $conn->prepare(
         'INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price, subtotal)

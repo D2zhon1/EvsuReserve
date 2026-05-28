@@ -309,3 +309,19 @@
   .om-select  { min-width: unset; width: 100%; }
   .om-info-grid { grid-template-columns: 1fr; }
 }
+
+.staff-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem .6rem;
+  margin-top: .25rem;
+  width: fit-content;
+  background: rgba(200,169,81,.2);
+  border: 1px solid rgba(200,169,81,.4);
+  border-radius: 100px;
+  color: var(--gold);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}

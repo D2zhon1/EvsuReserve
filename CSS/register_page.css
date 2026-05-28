@@ -137,6 +137,14 @@
   margin-top: .6rem;
 }
 
+.field-hint {
+  display: block;
+  margin-top: .35rem;
+  font-size: .78rem;
+  color: var(--muted, #7a6a5a);
+  line-height: 1.35;
+}
+
 /* ── Responsive ── */
 @media (max-width: 760px) {
   .field-row {

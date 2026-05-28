@@ -89,7 +89,7 @@ $data = [
 
             "billing" => [
                 "name" => $ctx['user_name'],
-                "email" => $ctx['email'] ?? 'student@evsu.edu.ph'
+                "email" => $ctx['email'] ?? ($_SESSION['user_email'] ?? '')
             ],
 
             "send_email_receipt" => true,
@@ -118,7 +118,6 @@ $data = [
 ];
 
 $payload = json_encode($data);
-print_r($_ENV['PAYMONGO_KEY']);
 $curl = curl_init();
 
 curl_setopt_array($curl, [

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../database.php';
 $user_name  = $_SESSION['user_name'] ?? 'Staff User';
 $first_name = explode(' ', $user_name)[0];
 $staff_role = $_SESSION['staff_role'] ?? 'Staff';
+session_write_close();
 
 $stats = $conn->query(
     "SELECT
@@ -142,7 +143,7 @@ $payment_config = [
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="../logout.php" class="nav-item nav-logout">
+    <a href="../login_page.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -187,7 +188,6 @@ $payment_config = [
         <div class="user-avatar"><?= strtoupper(substr($first_name, 0, 1)) ?></div>
         <div class="user-info">
           <span class="user-name"><?= htmlspecialchars($first_name) ?></span>
-          <span class="user-role"><?= htmlspecialchars($staff_role) ?></span>
         </div>
       </div>
     </div>

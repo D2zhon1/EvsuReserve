@@ -3,6 +3,11 @@ session_start();
 
 require_once __DIR__ . '/../database.php';
 
+$user_name  = $_SESSION['user_name'] ?? 'Staff User';
+$first_name = explode(' ', trim($user_name))[0] ?: 'Staff';
+$user_role  = ucfirst((string) ($_SESSION['role'] ?? 'staff'));
+session_write_close();
+
 $orders = [];
 $res = $conn->query(
     "SELECT o.id, o.order_number, u.full_name AS customer_name, u.email AS customer_email,
@@ -75,11 +80,11 @@ $orders_json = json_encode($orders);
       </div>
       
     </div>
-    
+    <div class="staff-badge">STAFF</div>
   </div>
 
   <nav class="sidebar-nav">
-    <a href="StaffDashboard.php" class="nav-item active">
+    <a href="StaffDashboard.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -96,7 +101,7 @@ $orders_json = json_encode($orders);
       </svg>
       Products
     </a>
-    <a href="OrderManagement.php" class="nav-item">
+    <a href="OrderManagement.php" class="nav-item active">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
@@ -121,7 +126,7 @@ $orders_json = json_encode($orders);
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="../logout.php" class="nav-item nav-logout">
+    <a href="../login_page.php" class="nav-item nav-logout">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -147,10 +152,9 @@ $orders_json = json_encode($orders);
     </button>
     <div class="topbar-right">
       <div class="topbar-user">
-        <div class="user-avatar">M</div>
+        <div class="user-avatar"><?= strtoupper(substr($first_name, 0, 1)) ?></div>
         <div class="user-info">
-          <span class="user-name">Maria</span>
-          <span class="user-role">Admin</span>
+          <span class="user-name"><?= htmlspecialchars($first_name) ?></span>
         </div>
       </div>
     </div>
@@ -206,7 +210,6 @@ $orders_json = json_encode($orders);
           <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
         </svg>
         <p class="empty-title">No orders found</p>
-        <p class="empty-sub">Try adjusting your search or filter.</p>
       </div>
 
       <!-- Card header -->
