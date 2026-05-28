@@ -149,6 +149,7 @@ if (isset($result['data'])) {
 
     $checkout_session_id = $result['data']['id'] ?? '';
 
+    unset($_SESSION['online_order_done'], $_SESSION['last_order_number']);
     $_SESSION['pending_order'] = [
         'notes' => $notes,
         'payment_method' => 'online',
