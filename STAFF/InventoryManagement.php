@@ -187,7 +187,6 @@ $payment_config = [
         <div class="user-avatar"><?= strtoupper(substr($first_name, 0, 1)) ?></div>
         <div class="user-info">
           <span class="user-name"><?= htmlspecialchars($first_name) ?></span>
-          <span class="user-role"><?= htmlspecialchars($staff_role) ?></span>
         </div>
       </div>
     </div>

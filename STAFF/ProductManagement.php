@@ -1,18 +1,29 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/../database.php';
+
 $user_name  = $_SESSION['user_name'] ?? 'Admin User';
 $first_name = explode(' ', $user_name)[0];
 
-// ── Mock product data (replace with real DB queries) ──────────────────────
-$products = [
-    ['id' => 1, 'name' => 'EVSU PE Uniform',      'sku' => 'UNI-PE-001',  'category' => 'uniform',       'price' => 350.00,  'markup_price' => 420.00,  'stock_quantity' => 45,  'is_active' => true,  'sizes_available' => ['S','M','L','XL'],    'image_url' => '', 'description' => 'Official PE uniform set.'],
-    ['id' => 2, 'name' => 'EVSU ID Sling',         'sku' => 'ACC-SL-002',  'category' => 'id_sling',      'price' => 80.00,   'markup_price' => 110.00,  'stock_quantity' => 120, 'is_active' => true,  'sizes_available' => [],                    'image_url' => '', 'description' => 'Official ID sling with school logo.'],
-    ['id' => 3, 'name' => 'Blue Exam Booklet',     'sku' => 'SUP-BK-003',  'category' => 'booklet',       'price' => 15.00,   'markup_price' => 20.00,   'stock_quantity' => 5,   'is_active' => true,  'sizes_available' => [],                    'image_url' => '', 'description' => '50-leaf examination booklet.'],
-    ['id' => 4, 'name' => 'EVSU Tote Bag',         'sku' => 'MER-TB-004',  'category' => 'merchandise',   'price' => 180.00,  'markup_price' => 220.00,  'stock_quantity' => 30,  'is_active' => true,  'sizes_available' => [],                    'image_url' => '', 'description' => 'Canvas tote with EVSU branding.'],
-    ['id' => 5, 'name' => 'Laboratory Uniform',    'sku' => 'UNI-LAB-005', 'category' => 'uniform',       'price' => 450.00,  'markup_price' => 530.00,  'stock_quantity' => 0,   'is_active' => false, 'sizes_available' => ['S','M','L','XL','2XL'], 'image_url' => '', 'description' => 'White laboratory coat.'],
-    ['id' => 6, 'name' => 'Ballpen (12 pcs)',       'sku' => 'SUP-BP-006',  'category' => 'school_supply', 'price' => 60.00,   'markup_price' => 75.00,   'stock_quantity' => 200, 'is_active' => true,  'sizes_available' => [],                    'image_url' => '', 'description' => 'Black ballpens, box of 12.'],
-];
+$products = [];
+$res = $conn->query(
+    'SELECT id, sku, name, description, category, unit_price, markup_price, stock_quantity, sizes_available, image_url, is_active
+     FROM products
+     ORDER BY created_at DESC, id DESC'
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $sizes = array_filter(array_map('trim', explode(',', (string) ($row['sizes_available'] ?? ''))));
+        $row['price'] = (float) ($row['unit_price'] ?? 0);
+        $row['markup_price'] = isset($row['markup_price']) ? (float) $row['markup_price'] : (float) $row['price'];
+        $row['stock_quantity'] = (int) ($row['stock_quantity'] ?? 0);
+        $row['is_active'] = !empty($row['is_active']);
+        $row['sizes_available'] = array_values($sizes);
+        unset($row['unit_price']);
+        $products[] = $row;
+    }
+}
 
 $categories = [
     'uniform'       => 'Uniform',
@@ -31,6 +42,7 @@ $categories = [
   <title>Product Management — EVSU Reserve</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../CSS/student_dashboard.css"/>
   <link rel="stylesheet" href="/CSS/student_dashboard.css"/>
   <link rel="stylesheet" href="../CSS/ProductManagement.css"/>
 </head>
@@ -53,10 +65,11 @@ $categories = [
         <span class="logo-sub">RESERVE</span>
       </div>
     </div>
+    <div class="staff-badge">STAFF</div>
   </div>
 
   <nav class="sidebar-nav">
-    <a href="/STAFF/StaffDashboard.php" class="nav-item">
+    <a href="StaffDashboard.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -64,7 +77,7 @@ $categories = [
       </svg>
       Dashboard
     </a>
-    <a href="/STAFF/ProductManagement.php" class="nav-item active">
+    <a href="ProductManagement.php" class="nav-item active">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
@@ -73,7 +86,7 @@ $categories = [
       </svg>
       Products
     </a>
-    <a href="/STAFF/OrderManagement.php" class="nav-item">
+    <a href="OrderManagement.php" class="nav-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
@@ -134,7 +147,7 @@ $categories = [
     <div class="page-header">
       <div>
         <h1 class="page-title">Product Management</h1>
-        <p class="page-sub">iloveyouuubbbmwamwa hhhehehehe
+        <p class="page-sub">Manage and View Products
           
         </p>
       </div>

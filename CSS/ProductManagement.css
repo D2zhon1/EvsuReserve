@@ -74,6 +74,19 @@
   color: var(--text);
 }
 
+.staff-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem .6rem;
+  background: rgba(200,169,81,.2);
+  border: 1px solid rgba(200,169,81,.4);
+  border-radius: 100px;
+  color: var(--gold);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
 /* ── Stock ── */
 .stock-val {
   font-size: .88rem;
