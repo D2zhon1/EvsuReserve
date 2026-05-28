@@ -25,6 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $register_error = 'Please fill in all fields.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $register_error = 'Please enter a valid email address.';
+    } elseif (!preg_match('/@evsu\.edu\.ph$/i', $email)) {
+        $register_error = 'Registration is only allowed with an @evsu.edu.ph email address.';
     } elseif (strlen($password) < 8) {
         $register_error = 'Password must be at least 8 characters.';
     } elseif ($password !== $confirm_pass) {
@@ -185,8 +187,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             name="email"
             placeholder="yourname@evsu.edu.ph"
             autocomplete="email"
+            title="Use your EVSU email (@evsu.edu.ph only)"
             value="<?= htmlspecialchars($form_values['email']) ?>"
           />
+          <span class="field-hint">Only @evsu.edu.ph emails are accepted (e.g. not @gmail.com).</span>
         </div>
 
         <!-- Row 3: Course + Year Level -->

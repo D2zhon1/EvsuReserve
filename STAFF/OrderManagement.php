@@ -6,6 +6,7 @@ require_once __DIR__ . '/../database.php';
 $user_name  = $_SESSION['user_name'] ?? 'Staff User';
 $first_name = explode(' ', trim($user_name))[0] ?: 'Staff';
 $user_role  = ucfirst((string) ($_SESSION['role'] ?? 'staff'));
+session_write_close();
 
 $orders = [];
 $res = $conn->query(

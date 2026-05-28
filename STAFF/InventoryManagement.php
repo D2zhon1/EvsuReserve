@@ -6,6 +6,7 @@ require_once __DIR__ . '/../database.php';
 $user_name  = $_SESSION['user_name'] ?? 'Staff User';
 $first_name = explode(' ', $user_name)[0];
 $staff_role = $_SESSION['staff_role'] ?? 'Staff';
+session_write_close();
 
 $stats = $conn->query(
     "SELECT

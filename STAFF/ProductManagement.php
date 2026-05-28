@@ -5,6 +5,7 @@ require_once __DIR__ . '/../database.php';
 
 $user_name  = $_SESSION['user_name'] ?? 'Admin User';
 $first_name = explode(' ', $user_name)[0];
+session_write_close();
 
 $products = [];
 $res = $conn->query(

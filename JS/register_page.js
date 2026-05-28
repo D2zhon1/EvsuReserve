@@ -116,11 +116,18 @@ function togglePw(inputId, iconId) {
       }
     });
 
-    // Email format
+    // Email format + EVSU domain only
     const emailEl = document.getElementById('email');
-    if (emailEl && emailEl.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value)) {
-      emailEl.classList.add('error');
-      ok = false;
+    if (emailEl && emailEl.value) {
+      const emailVal = emailEl.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        emailEl.classList.add('error');
+        ok = false;
+      } else if (!/^[^\s@]+@evsu\.edu\.ph$/i.test(emailVal)) {
+        emailEl.classList.add('error');
+        ok = false;
+        alert('Registration is only allowed with an @evsu.edu.ph email address.');
+      }
     }
 
     // Password length
