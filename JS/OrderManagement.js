@@ -193,6 +193,12 @@
             '</span>' +
           '</span>' +
         '</div>' +
+        (order.status === 'pending' && order.payment_method === 'Cash'
+          ? '<div class="om-info-item" style="grid-column:1/-1">' +
+              '<span class="om-info-label">Staff action</span>' +
+              '<span class="om-info-value">Awaiting staff confirmation before cashier payment.</span>' +
+            '</div>'
+          : '') +
         '<div class="om-info-item">' +
           '<span class="om-info-label">Order Status</span>' +
           '<span class="om-info-value">' +

@@ -82,11 +82,16 @@ function updateItemCount() {
   if (sub) sub.textContent = count + ' item' + (count !== 1 ? 's' : '') + ' in your cart';
 }
 
-/* ── Toggle proof-of-payment section ── */
+/* ── Cash vs online checkout routing ── */
 function toggleProof(method) {
-  const section = document.getElementById('proof-section');
-  if (!section) return;
-  section.style.display = method === 'cash' ? 'block' : 'none';
+  const form    = document.getElementById('checkout-form');
+  const btnLbl  = document.getElementById('checkout-btn-label');
+  const cashHint = document.getElementById('cash-flow-hint');
+  const isCash  = method === 'cash';
+
+  if (form) form.action = isCash ? 'confirm_order.php' : 'online_checkout.php';
+  if (btnLbl) btnLbl.textContent = isCash ? 'Confirm Order' : 'Place Order';
+  if (cashHint) cashHint.style.display = isCash ? 'block' : 'none';
 }
 
 /* ── Update file name display ── */
@@ -109,12 +114,16 @@ function updateFileName(input) {
   if (!form || !btn) return;
 
   form.addEventListener('submit', function () {
+    const method = form.querySelector('input[name="payment_method"]:checked')?.value || 'cash';
+
     btn.disabled = true;
     btn.innerHTML = `
       <div class="btn-spinner"></div>
-      Processing...
+      ${method === 'cash' ? 'Confirming...' : 'Processing...'}
     `;
   });
+
+  toggleProof(form.querySelector('input[name="payment_method"]:checked')?.value || 'cash');
 })();
 
 /* ── Toast ── */

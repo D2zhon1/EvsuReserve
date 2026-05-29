@@ -399,3 +399,14 @@ html, body {
 @media (max-width: 480px) {
   .user-name { display: none; }
 }
+
+.proof-wait-msg {
+  margin: 0;
+  padding: .75rem 1rem;
+  background: #fdf6e3;
+  border: 1px solid #e8d9a8;
+  border-radius: 8px;
+  font-size: .88rem;
+  color: #5c4a1e;
+  line-height: 1.45;
+}

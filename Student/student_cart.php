@@ -31,6 +31,23 @@ $stmt->close();
 $cart_count = array_sum(array_column($cart_items, 'quantity'));
 $total      = array_reduce($cart_items, fn($s, $i) => $s + $i['unit_price'] * $i['quantity'], 0);
 
+$pending_cash_notice = null;
+$pstmt = $conn->prepare(
+    "SELECT o.order_number
+     FROM orders o
+     JOIN payments p ON p.order_id = o.id AND p.method = 'Cash' AND p.status = 'pending'
+     WHERE o.user_id = ? AND o.status = 'pending'
+     ORDER BY o.created_at DESC
+     LIMIT 1"
+);
+$pstmt->bind_param('i', $user_id);
+$pstmt->execute();
+$pending_row = $pstmt->get_result()->fetch_assoc();
+$pstmt->close();
+if ($pending_row) {
+    $pending_cash_notice = $pending_row['order_number'];
+}
+
 // Toast from redirect
 $toast_msg  = $_SESSION['toast_msg']  ?? '';
 $toast_type = $_SESSION['toast_type'] ?? 'success';
@@ -117,6 +134,13 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
         <p class="page-sub"><?= $cart_count ?> item<?= $cart_count !== 1 ? 's' : '' ?> in your cart</p>
       </div>
     </div>
+
+    <?php if ($pending_cash_notice): ?>
+      <div class="cart-notice">
+        Order <strong><?= htmlspecialchars($pending_cash_notice) ?></strong> is awaiting staff confirmation.
+        Your cart stays active until staff approves it. You can upload your payment receipt after staff confirms.
+      </div>
+    <?php endif; ?>
 
     <?php if (empty($cart_items)): ?>
       <!-- Empty state -->
@@ -253,22 +277,9 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
               </div>
             </div>
 
-            <!-- Proof of payment (shown for cash) -->
-            <div class="form-field" id="proof-section">
-              <label class="field-label">Proof of Payment <span class="field-opt">(optional)</span></label>
-              <label class="file-upload-label" id="file-upload-label">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="16 16 12 12 8 16"/>
-                  <line x1="12" y1="12" x2="12" y2="21"/>
-                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-                </svg>
-                <span id="file-name-display">Choose file...</span>
-                <input type="file" name="proof_of_payment" accept="image/*"
-                       id="proof-input" onchange="updateFileName(this)"/>
-              </label>
-            </div>
+            <p class="field-hint-cash" id="cash-flow-hint">
+              Cash orders are confirmed first by staff. After approval, pay at the cashier and upload your receipt from the order receipt page.
+            </p>
 
             <!-- Notes -->
             <div class="form-field">
@@ -277,7 +288,7 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
                         class="notes-input"></textarea>
             </div>
 
-            <!-- Place order -->
+            <!-- Confirm / place order -->
             <button type="submit" class="btn-place-order" id="place-order-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
                    fill="none" stroke="currentColor" stroke-width="2"
@@ -285,7 +296,7 @@ unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
                 <rect x="1" y="4" width="22" height="16" rx="2"/>
                 <line x1="1" y1="10" x2="23" y2="10"/>
               </svg>
-              Place Order
+              <span id="checkout-btn-label">Confirm Order</span>
             </button>
 
           </form>

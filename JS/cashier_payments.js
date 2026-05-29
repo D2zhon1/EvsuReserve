@@ -107,17 +107,24 @@ function openModal(paymentJson) {
     </div>
 
     <div class="proof-wrap">
-      <span class="proof-label">Proof of Payment</span>
+      <span class="proof-label">Payment Receipt</span>
       ${payment.proof_url
-        ? `<img src="${esc(payment.proof_url)}" alt="Proof of payment"/>`
-        : `<div class="proof-placeholder">No proof image uploaded</div>`
+        ? `<img src="${esc(payment.proof_url.startsWith('http') ? payment.proof_url : '../' + payment.proof_url)}" alt="Payment receipt"/>`
+        : `<div class="proof-placeholder">No receipt uploaded</div>`
       }
     </div>
   `;
 
+  const cashNeedsReceipt = payment.method === 'Cash' && !payment.proof_url;
+
   // Footer action buttons — only for pending
   footer.innerHTML = '';
   if (payment.status === 'pending') {
+    if (cashNeedsReceipt) {
+      footer.innerHTML = `
+        <p class="proof-wait-msg">Waiting for the student to upload a payment receipt. Verification is disabled until a receipt is uploaded.</p>
+      `;
+    } else {
     footer.innerHTML = `
       <button class="btn-modal btn-modal-verify" onclick="handleAction('${esc(payment.id)}','verified','${esc(payment.order_id)}')">
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
@@ -139,6 +146,7 @@ function openModal(paymentJson) {
         Reject
       </button>
     `;
+    }
   }
 
   backdrop.classList.add('open');
@@ -184,7 +192,7 @@ function handleAction(paymentId, action, orderId) {
         _closeModal();
         updateRowStatus(data.payment_id, data.new_status);
       } else {
-        showToast('Action failed. Please try again.', 'error');
+        showToast(data.message || 'Action failed. Please try again.', 'error');
       }
     })
     .catch(() => showToast('Network error. Please try again.', 'error'));

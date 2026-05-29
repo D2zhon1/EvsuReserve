@@ -231,12 +231,14 @@ $orders_json = json_encode($orders);
               <th>Status</th>
               <th>Date</th>
               <th>Update Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="om-tbody">
             <?php foreach ($orders as $order):
               $date_fmt = date('M j', strtotime($order['created_date']));
               $item_count = count($order['items']);
+              $needs_confirm = $order['status'] === 'pending' && $order['payment_method'] === 'Cash';
             ?>
             <tr
               class="om-row"
@@ -272,6 +274,17 @@ $orders_json = json_encode($orders);
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
                 </div>
+              </td>
+              <td onclick="event.stopPropagation()">
+                <?php if ($needs_confirm): ?>
+                  <button type="button" class="btn-shop btn-shop-sm om-confirm-btn"
+                          data-id="<?= htmlspecialchars($order['id']) ?>"
+                          onclick="staffConfirmOrder(<?= (int) $order['id'] ?>, this)">
+                    Confirm Order
+                  </button>
+                <?php else: ?>
+                  <span class="text-muted" style="font-size:.8rem;">—</span>
+                <?php endif; ?>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -316,6 +329,36 @@ $orders_json = json_encode($orders);
 <script src="/JS/student_dashboard.js"></script>
 <script src="/JS/StaffDashboard.js"></script>
 <script src="/JS/OrderManagement.js"></script>
+<script>
+function staffConfirmOrder(orderId, btn) {
+  if (!confirm('Confirm this cash order? The student can then pay at the cashier.')) return;
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = 'Confirming…';
+  fetch('staff_confirm_order.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: orderId }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        if (typeof showToast === 'function') showToast('Order confirmed.', 'success');
+        setTimeout(() => location.reload(), 500);
+      } else {
+        if (typeof showToast === 'function') showToast(data.message || 'Failed', 'error');
+        else alert(data.message || 'Failed');
+        btn.disabled = false;
+        btn.textContent = prev;
+      }
+    })
+    .catch(() => {
+      if (typeof showToast === 'function') showToast('Network error', 'error');
+      btn.disabled = false;
+      btn.textContent = prev;
+    });
+}
+</script>
 </body>
 </html>
 

@@ -51,17 +51,13 @@ if (empty($cart_items)) {
 }
 
 //
-// CASH PAYMENT
+// CASH PAYMENT — handled by confirm_order.php (multipart upload)
 //
 
 if ($payment_method === 'cash') {
-
-    $_SESSION['checkout_data'] = [
-        'notes' => $notes,
-        'payment_method' => 'cash'
-    ];
-
-    header("Location: checkout.php");
+    $_SESSION['toast_msg']  = 'Please confirm your cash order from the cart page.';
+    $_SESSION['toast_type'] = 'error';
+    header('Location: student_cart.php');
     exit;
 }
 
