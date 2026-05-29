@@ -54,7 +54,7 @@ function evsu_verify_payment(mysqli $conn, string $payment_code, string $action,
         return false;
     }
 
-    $stmt = $conn->prepare('SELECT order_id FROM payments WHERE payment_code = ? LIMIT 1');
+    $stmt = $conn->prepare('SELECT order_id, method, proof_url FROM payments WHERE payment_code = ? LIMIT 1');
     $stmt->bind_param('s', $payment_code);
     $stmt->execute();
     $payment = $stmt->get_result()->fetch_assoc();
@@ -65,6 +65,10 @@ function evsu_verify_payment(mysqli $conn, string $payment_code, string $action,
     }
 
     $order_id = (int) $payment['order_id'];
+
+    if ($action === 'verified' && $payment['method'] === 'Cash' && empty($payment['proof_url'])) {
+        return false;
+    }
 
     if ($action === 'verified') {
         $stmt = $conn->prepare(

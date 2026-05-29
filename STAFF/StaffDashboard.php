@@ -54,6 +54,24 @@ $total_revenue = array_reduce($orders, function($sum, $o) {
 
 $recent_orders = array_slice($orders, 0, 6);
 
+$pending_cash_orders = [];
+$res = $conn->query(
+    "SELECT o.id, o.order_number, u.full_name AS customer_name, o.total_amount,
+            DATE(o.created_at) AS created_date, p.proof_url
+     FROM orders o
+     JOIN users u ON u.id = o.user_id
+     JOIN payments p ON p.order_id = o.id AND p.method = 'Cash' AND p.status = 'pending'
+     WHERE o.status = 'pending'
+     ORDER BY o.created_at DESC
+     LIMIT 10"
+);
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $row['total_amount'] = (float) $row['total_amount'];
+        $pending_cash_orders[] = $row;
+    }
+}
+
 // ── Status badge config ───────────────────────────────────────────────────
 $status_config = [
     'completed'  => ['label' => 'Completed',  'class' => 'badge-green'],
@@ -240,6 +258,30 @@ $status_config = [
 
     </div><!-- /stats-grid -->
 
+    <?php if (!empty($pending_cash_orders)): ?>
+    <div class="orders-card" style="margin-bottom:1.25rem;">
+      <div class="orders-card-header orders-card-header-warn">
+        <h2 class="orders-title"><span class="warn-dot"></span> Cash Orders — Awaiting Confirmation</h2>
+        <a href="OrderManagement.php" class="view-all-link">View all</a>
+      </div>
+      <div class="panel-list">
+        <?php foreach ($pending_cash_orders as $pco): ?>
+        <div class="panel-row">
+          <div class="panel-row-left">
+            <p class="panel-row-title"><?= htmlspecialchars($pco['order_number']) ?></p>
+            <p class="panel-row-sub"><?= htmlspecialchars($pco['customer_name']) ?> · <?= htmlspecialchars($pco['created_date']) ?></p>
+          </div>
+          <div class="panel-row-right" style="gap:.5rem;">
+            <span class="panel-row-amount">₱<?= number_format($pco['total_amount'], 2) ?></span>
+            <button type="button" class="btn-shop btn-shop-sm"
+                    onclick="staffConfirmOrder(<?= (int) $pco['id'] ?>, this)">Confirm</button>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Two-column cards -->
     <div class="dual-grid">
 
@@ -331,5 +373,31 @@ $status_config = [
 
 <script src="/JS/student_dashboard.js"></script>
 <script src="/JS/StaffDashboard.js"></script>
+<script>
+function staffConfirmOrder(orderId, btn) {
+  if (!confirm('Confirm this cash order? Stock will be reserved and the student can pay at the cashier.')) return;
+  btn.disabled = true;
+  btn.textContent = 'Confirming…';
+  fetch('staff_confirm_order.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: orderId }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) location.reload();
+      else {
+        alert(data.message || 'Could not confirm order.');
+        btn.disabled = false;
+        btn.textContent = 'Confirm';
+      }
+    })
+    .catch(() => {
+      alert('Network error.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm';
+    });
+}
+</script>
 </body>
 </html>

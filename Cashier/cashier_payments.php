@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode(['success' => true, 'payment_id' => $payment_id, 'new_status' => $action]);
         } else {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Payment not found']);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Payment not found or cash payment has no uploaded receipt yet.',
+            ]);
         }
     } else {
         http_response_code(400);
@@ -244,7 +247,11 @@ $status_config = [
                       </svg>
                     </button>
 
+                    <?php
+                      $cash_no_receipt = $payment['method'] === 'Cash' && empty($payment['proof_url']);
+                    ?>
                     <?php if ($payment['status'] === 'pending'): ?>
+                      <?php if (!$cash_no_receipt): ?>
                       <!-- Verify -->
                       <button class="action-btn btn-verify" title="Verify payment"
                               onclick="handleAction('<?= $payment['id'] ?>', 'verified', '<?= $payment['order_id'] ?>')">
@@ -255,6 +262,7 @@ $status_config = [
                           <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
                       </button>
+                      <?php endif; ?>
                       <!-- Reject -->
                       <button class="action-btn btn-reject" title="Reject payment"
                               onclick="handleAction('<?= $payment['id'] ?>', 'rejected', '<?= $payment['order_id'] ?>')">

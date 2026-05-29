@@ -18,7 +18,8 @@ if ($payment_id <= 0) {
 }
 
 $stmt = $conn->prepare(
-    'SELECT p.id, p.payment_code, p.method, p.amount, p.created_at, p.status, o.order_number
+    'SELECT p.id, p.payment_code, p.method, p.amount, p.created_at, p.status, p.proof_url,
+            o.order_number, o.status AS order_status
      FROM payments p
      INNER JOIN orders o ON o.id = p.order_id
      WHERE p.id = ? AND o.user_id = ?
@@ -35,6 +36,17 @@ if (!$receipt) {
     header('Location: student_orders.php');
     exit;
 }
+
+$can_upload_receipt = $receipt['method'] === 'Cash'
+    && $receipt['order_status'] === 'processing'
+    && $receipt['status'] === 'pending'
+    && empty($receipt['proof_url']);
+
+$has_proof = !empty($receipt['proof_url']);
+
+$toast_msg  = $_SESSION['toast_msg'] ?? '';
+$toast_type = $_SESSION['toast_type'] ?? 'success';
+unset($_SESSION['toast_msg'], $_SESSION['toast_type']);
 
 $active_nav = 'orders';
 $page_title = 'Payment Receipt';
@@ -121,6 +133,38 @@ require __DIR__ . '/_layout_top.php';
     color: #312e81;
   }
 
+  .receipt-upload-box {
+    margin-top: 1.25rem;
+    padding: 1rem;
+    background: #f8f9ff;
+    border: 1px dashed #c7d2fe;
+    border-radius: 12px;
+  }
+
+  .receipt-upload-box h3 {
+    margin: 0 0 .35rem;
+    font-size: 1rem;
+    color: #1f2937;
+  }
+
+  .receipt-upload-box p {
+    margin: 0 0 .75rem;
+    font-size: .88rem;
+    color: #6b7280;
+  }
+
+  .receipt-upload-form input[type="file"] {
+    margin-bottom: .75rem;
+    width: 100%;
+  }
+
+  .receipt-proof-preview {
+    margin-top: 1rem;
+    max-width: 320px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+  }
+
   @media (max-width: 640px) {
     .receipt-grid {
       grid-template-columns: 1fr;
@@ -131,7 +175,15 @@ require __DIR__ . '/_layout_top.php';
 <div class="receipt-wrap">
   <div class="receipt-card">
     <h1 class="receipt-title">Payment Receipt</h1>
-    <p class="receipt-sub">Present this when claiming your order.</p>
+    <?php if ($receipt['method'] === 'Cash' && $receipt['order_status'] === 'pending'): ?>
+      <p class="receipt-sub">Your order is awaiting staff confirmation. Items remain in your cart until staff approves.</p>
+    <?php elseif ($can_upload_receipt): ?>
+      <p class="receipt-sub">Staff confirmed your order. Pay at the cashier, then upload your payment receipt below so the cashier can verify your payment.</p>
+    <?php elseif ($receipt['method'] === 'Cash' && $has_proof && $receipt['status'] === 'pending'): ?>
+      <p class="receipt-sub">Receipt uploaded. Waiting for cashier verification.</p>
+    <?php else: ?>
+      <p class="receipt-sub">Present this when claiming your order.</p>
+    <?php endif; ?>
 
     <div class="receipt-grid">
       <div class="receipt-item">
@@ -160,11 +212,36 @@ require __DIR__ . '/_layout_top.php';
       </div>
     </div>
 
+    <?php if ($can_upload_receipt): ?>
+    <div class="receipt-upload-box">
+      <h3>Upload Payment Receipt</h3>
+      <p>After paying at the cashier, upload a photo of your receipt here.</p>
+      <form class="receipt-upload-form" method="POST" action="upload_payment_receipt.php" enctype="multipart/form-data">
+        <input type="hidden" name="payment_id" value="<?= (int) $payment_id ?>"/>
+        <input type="file" name="proof_of_payment" accept="image/*" required/>
+        <button type="submit" class="receipt-btn receipt-btn-primary">Upload Receipt</button>
+      </form>
+    </div>
+    <?php elseif ($has_proof): ?>
+    <div class="receipt-upload-box">
+      <h3>Uploaded Receipt</h3>
+      <img class="receipt-proof-preview" src="../<?= htmlspecialchars($receipt['proof_url']) ?>" alt="Payment receipt"/>
+    </div>
+    <?php endif; ?>
+
     <div class="receipt-actions">
       <button type="button" class="receipt-btn receipt-btn-primary" onclick="window.print()">Print Receipt</button>
       <a href="student_orders.php" class="receipt-btn receipt-btn-muted">Go to My Orders</a>
     </div>
   </div>
 </div>
+
+<?php if ($toast_msg): ?>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    alert(<?= json_encode($toast_msg) ?>);
+  });
+</script>
+<?php endif; ?>
 
 <?php require __DIR__ . '/_layout_bottom.php'; ?>

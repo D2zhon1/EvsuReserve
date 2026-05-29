@@ -203,6 +203,29 @@
   letter-spacing: .06em;
   margin-bottom: .45rem;
 }
+.cart-notice {
+  margin-bottom: 1rem;
+  padding: .75rem 1rem;
+  background: #fdf6e3;
+  border: 1px solid #e8d9a8;
+  border-radius: 8px;
+  font-size: .88rem;
+  color: #5c4a1e;
+  line-height: 1.45;
+}
+
+.field-hint-cash {
+  margin: 0 0 .5rem;
+  font-size: .78rem;
+  color: var(--muted, #7a6a5a);
+  line-height: 1.4;
+}
+
+.required-mark {
+  color: #8b0000;
+  font-weight: 700;
+}
+
 .field-opt {
   font-weight: 400;
   text-transform: none;
