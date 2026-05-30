@@ -55,15 +55,18 @@ if (!in_array($online_method, ['GCash', 'PayMaya', 'Bank Transfer'], true)) {
 $conn->begin_transaction();
 
 try {
+
     $stmt = $conn->prepare(
         'INSERT INTO orders (order_number, user_id, total_amount, status, payment_status, notes)
          VALUES (?, ?, ?, \'pending\', \'pending\', ?)'
     );
+
     $stmt->bind_param('sids', $order_number, $user_id, $total, $notes);
     $stmt->execute();
+
     $order_id = (int) $conn->insert_id;
+
     $stmt->close();
-}
 
     $item_stmt = $conn->prepare(
         'INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price, subtotal)
@@ -71,23 +74,46 @@ try {
     );
 
     foreach ($cart_items as $item) {
+
         $subtotal = (float) $item['unit_price'] * (int) $item['quantity'];
         $pid      = (int) $item['product_id'];
         $pname    = $item['product_name'];
         $size     = $item['size'];
         $qty      = (int) $item['quantity'];
         $price    = (float) $item['unit_price'];
-        $item_stmt->bind_param('iissidd', $order_id, $pid, $pname, $size, $qty, $price, $subtotal);
+
+        $item_stmt->bind_param(
+            'iissidd',
+            $order_id,
+            $pid,
+            $pname,
+            $size,
+            $qty,
+            $price,
+            $subtotal
+        );
+
         $item_stmt->execute();
     }
+
     $item_stmt->close();
 
     $pay_code = 'PAY-' . str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+
     $pay_stmt = $conn->prepare(
         'INSERT INTO payments (payment_code, order_id, method, amount, status, reference_number)
          VALUES (?, ?, ?, ?, \'pending\', ?)'
     );
-    $pay_stmt->bind_param('sisds', $pay_code, $order_id, $online_method, $total, $reference_number);
+
+    $pay_stmt->bind_param(
+        'sisds',
+        $pay_code,
+        $order_id,
+        $online_method,
+        $total,
+        $reference_number
+    );
+
     $pay_stmt->execute();
     $pay_stmt->close();
 
@@ -97,11 +123,16 @@ try {
     $del->close();
 
     $conn->commit();
+
     unset($_SESSION['pending_order']);
+
 } catch (Throwable $e) {
+
     $conn->rollback();
+
     $_SESSION['toast_msg'] = 'Online checkout failed: ' . $e->getMessage();
     $_SESSION['toast_type'] = 'error';
+
     header('Location: student_cart.php');
     exit;
 }
