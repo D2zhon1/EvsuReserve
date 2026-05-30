@@ -41,56 +41,9 @@ if ($order['status'] !== 'pending' || ($order['payment_method'] ?? '') !== 'Cash
 
 $user_id = (int) $order['user_id'];
 
-$items_stmt = $conn->prepare(
-    'SELECT product_id, product_name, quantity FROM order_items WHERE order_id = ?'
-);
-$items_stmt->bind_param('i', $order_id);
-$items_stmt->execute();
-$order_items = $items_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$items_stmt->close();
-
-if (count($order_items) === 0) {
-    echo json_encode(['success' => false, 'message' => 'Order has no items.']);
-    exit;
-}
-
 $conn->begin_transaction();
 
 try {
-    $stock_stmt = $conn->prepare('SELECT stock_quantity FROM products WHERE id = ? FOR UPDATE');
-    $deduct_stmt = $conn->prepare(
-        'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?'
-    );
-
-    foreach ($order_items as $item) {
-        $pid = (int) $item['product_id'];
-        $qty = (int) $item['quantity'];
-
-        if ($pid <= 0) {
-            continue;
-        }
-
-        $stock_stmt->bind_param('i', $pid);
-        $stock_stmt->execute();
-        $stock_res = $stock_stmt->get_result()->fetch_assoc();
-        $current_stock = (int) ($stock_res['stock_quantity'] ?? 0);
-
-        if ($current_stock < $qty) {
-            throw new RuntimeException(
-                $item['product_name'] . ' does not have enough stock. Available: ' . $current_stock
-            );
-        }
-
-        $deduct_stmt->bind_param('iii', $qty, $pid, $qty);
-        $deduct_stmt->execute();
-        if ($deduct_stmt->affected_rows <= 0) {
-            throw new RuntimeException('Failed to reserve stock for ' . $item['product_name']);
-        }
-    }
-
-    $stock_stmt->close();
-    $deduct_stmt->close();
-
     $upd = $conn->prepare("UPDATE orders SET status = 'processing' WHERE id = ?");
     $upd->bind_param('i', $order_id);
     $upd->execute();

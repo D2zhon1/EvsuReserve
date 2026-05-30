@@ -115,7 +115,15 @@ try {
     );
 
     $pay_stmt->execute();
+    $payment_id = (int) $conn->insert_id;
     $pay_stmt->close();
+
+    $paid_stmt = $conn->prepare(
+        "UPDATE orders SET status = 'paid', payment_status = 'paid' WHERE id = ?"
+    );
+    $paid_stmt->bind_param('i', $order_id);
+    $paid_stmt->execute();
+    $paid_stmt->close();
 
     $del = $conn->prepare('DELETE FROM cart_items WHERE user_id = ?');
     $del->bind_param('i', $user_id);
@@ -125,9 +133,21 @@ try {
     $conn->commit();
 
     unset($_SESSION['pending_order']);
+    $_SESSION['cart_count'] = 0;
 
+    evsu_log_activity(
+        $conn,
+        'Online Order Placed',
+        $_SESSION['user_email'] ?? '',
+        'student',
+        "Order {$order_number} paid online."
+    );
+
+    $_SESSION['toast_msg']  = "Order {$order_number} placed successfully!";
+    $_SESSION['toast_type'] = 'success';
+    header('Location: payment_receipt.php?payment_id=' . $payment_id);
+    exit;
 } catch (Throwable $e) {
-
     $conn->rollback();
 
     $_SESSION['toast_msg'] = 'Online checkout failed: ' . $e->getMessage();
@@ -136,83 +156,3 @@ try {
     header('Location: student_cart.php');
     exit;
 }
-?>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Payment Success</title>
-
-    <style>
-
-        body{
-            font-family:Arial;
-            background:#f5f5f5;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            height:100vh;
-        }
-
-        .card{
-            background:white;
-            padding:40px;
-            border-radius:12px;
-            text-align:center;
-            width:400px;
-        }
-
-        .count{
-            font-size:40px;
-            color:#6c5ce7;
-            font-weight:bold;
-        }
-
-    </style>
-</head>
-<body>
-
-<div class="card">
-
-    <h1>✅ Payment Successful</h1>
-
-    <p>Your order has been placed.</p>
-
-    <p>
-        Redirecting in
-    </p>
-
-    <div class="count" id="count">
-        5
-    </div>
-
-</div>
-
-<script>
-
-let seconds = 5;
-
-const el =
-document.getElementById("count");
-
-const timer =
-setInterval(() => {
-
-    seconds--;
-
-    el.innerHTML = seconds;
-
-    if(seconds <= 0){
-
-        clearInterval(timer);
-
-        window.location.href =
-        "student_orders.php";
-    }
-
-}, 1000);
-
-</script>
-
-</body>
-</html>
