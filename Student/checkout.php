@@ -89,6 +89,13 @@ try {
     $order_id = (int) $conn->insert_id;
     $stmt->close();
 
+    if (function_exists('evsu_column_exists') && evsu_column_exists($conn, 'orders', 'stock_deducted')) {
+        $flag_stmt = $conn->prepare('UPDATE orders SET stock_deducted = 1 WHERE id = ?');
+        $flag_stmt->bind_param('i', $order_id);
+        $flag_stmt->execute();
+        $flag_stmt->close();
+    }
+
     $item_stmt = $conn->prepare(
         'INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price, subtotal)
          VALUES (?, ?, ?, ?, ?, ?, ?)'

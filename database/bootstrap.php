@@ -156,6 +156,7 @@ function evsu_run_schema(mysqli $db): void
             total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             status ENUM('pending','processing','ready','paid','completed','cancelled') NOT NULL DEFAULT 'pending',
             payment_status ENUM('pending','verified','paid','rejected','refunded') NOT NULL DEFAULT 'pending',
+            stock_deducted TINYINT(1) NOT NULL DEFAULT 0,
             notes TEXT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -262,6 +263,11 @@ function evsu_run_migrations(mysqli $db): void
         $db->query(
             "ALTER TABLE orders MODIFY status ENUM('pending','processing','ready','paid','completed','cancelled') NOT NULL DEFAULT 'pending'"
         );
+        if (!evsu_column_exists($db, 'orders', 'stock_deducted')) {
+            $db->query(
+                'ALTER TABLE orders ADD COLUMN stock_deducted TINYINT(1) NOT NULL DEFAULT 0 AFTER payment_status'
+            );
+        }
     }
 }
 

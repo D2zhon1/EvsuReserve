@@ -76,6 +76,8 @@
     // Disable select while saving
     selectEl.disabled = true;
 
+  const paymentBadgeCell = cells[4];
+
     // Optimistic UI update
     if (badgeCell) {
       badgeCell.innerHTML =
@@ -83,8 +85,19 @@
         newStatus.charAt(0).toUpperCase() + newStatus.slice(1) +
         '</span>';
     }
-    if (record) record.status = newStatus;
-    if (record) row.dataset.order = JSON.stringify(record);
+    if (record) {
+      record.status = newStatus;
+      if (newStatus === 'paid') record.payment_status = 'paid';
+      if (newStatus === 'completed') record.payment_status = 'verified';
+      if (newStatus === 'cancelled') record.payment_status = 'rejected';
+      row.dataset.order = JSON.stringify(record);
+    }
+    if (paymentBadgeCell && record && record.payment_status) {
+      paymentBadgeCell.innerHTML =
+        '<span class="badge ' + paymentBadgeClass(record.payment_status) + '">' +
+        record.payment_status.charAt(0).toUpperCase() + record.payment_status.slice(1) +
+        '</span>';
+    }
 
     row.classList.remove('om-row-updated');
     void row.offsetWidth;
@@ -105,9 +118,10 @@
         }
         if (record) { record.status = prevStatus; row.dataset.order = JSON.stringify(record); }
         selectEl.value = prevStatus || selectEl.value;
-        showToast('Update failed', 'error');
+        showToast(data && data.error ? data.error : 'Update failed', 'error');
       } else {
-        showToast('Order ' + (record ? record.order_number : orderId) + ' updated to ' + newStatus, 'success');
+        if (data.status) selectEl.value = data.status;
+        showToast('Order ' + (record ? record.order_number : orderId) + ' updated to ' + (data.status || newStatus), 'success');
       }
     })
     .catch(function () {
