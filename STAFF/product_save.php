@@ -3,6 +3,7 @@ session_start();
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/product_sizes.php';
 
 $raw = json_decode(file_get_contents('php://input'), true);
 if (!is_array($raw)) {
@@ -19,54 +20,128 @@ $markup   = (float) ($raw['markup_price'] ?? 0);
 if ($markup <= 0) {
     $markup = round($price * 1.2, 2);
 }
-$stock    = (int) ($raw['stock_quantity'] ?? 0);
 $image    = trim($raw['image_url'] ?? '');
 $active   = !empty($raw['is_active']) ? 1 : 0;
 $sizes    = $raw['sizes_available'] ?? [];
-$sizesStr = is_array($sizes) ? implode(',', array_filter($sizes)) : trim((string) $sizes);
+$sizesList = is_array($sizes) ? array_values(array_filter(array_map(
+    static fn($s) => strtoupper(trim((string) $s)),
+    $sizes
+))) : [];
+
+$sizeStockRaw = $raw['size_stock'] ?? [];
+$sizeStockMap = [];
+if (is_array($sizeStockRaw)) {
+    foreach ($sizeStockRaw as $size => $qty) {
+        $size = strtoupper(trim((string) $size));
+        if ($size === '') {
+            continue;
+        }
+        $sizeStockMap[$size] = max(0, (int) $qty);
+    }
+}
+
+if ($sizesList !== []) {
+    $normalized = [];
+    foreach ($sizesList as $size) {
+        $normalized[$size] = $sizeStockMap[$size] ?? 0;
+    }
+    $sizeStockMap = $normalized;
+    $stock = evsu_size_stock_total($sizeStockMap);
+} else {
+    $stock = (int) ($raw['stock_quantity'] ?? 0);
+    $sizeStockMap = [];
+}
+
+$sizeStockJson = evsu_encode_size_stock($sizeStockMap);
+$sizesStr      = implode(',', array_keys($sizeStockMap ?: array_fill_keys($sizesList, 0)));
 
 if ($name === '' || $price < 0) {
     echo json_encode(['success' => false, 'message' => 'Name and price are required.']);
     exit;
 }
 
+$hasSizeStockCol = function_exists('evsu_column_exists') && evsu_column_exists($conn, 'products', 'size_stock');
+
 if ($id > 0) {
-    $stmt = $conn->prepare(
-        'UPDATE products SET sku=?, name=?, description=?, category=?, unit_price=?, markup_price=?,
-         stock_quantity=?, sizes_available=?, image_url=?, is_active=? WHERE id=?'
-    );
-    $stmt->bind_param(
-        'ssssddissii',
-        $sku,
-        $name,
-        $desc,
-        $category,
-        $price,
-        $markup,
-        $stock,
-        $sizesStr,
-        $image,
-        $active,
-        $id
-    );
+    if ($hasSizeStockCol) {
+        $stmt = $conn->prepare(
+            'UPDATE products SET sku=?, name=?, description=?, category=?, unit_price=?, markup_price=?,
+             stock_quantity=?, size_stock=?, sizes_available=?, image_url=?, is_active=? WHERE id=?'
+        );
+        $stmt->bind_param(
+            'ssssddisssii',
+            $sku,
+            $name,
+            $desc,
+            $category,
+            $price,
+            $markup,
+            $stock,
+            $sizeStockJson,
+            $sizesStr,
+            $image,
+            $active,
+            $id
+        );
+    } else {
+        $stmt = $conn->prepare(
+            'UPDATE products SET sku=?, name=?, description=?, category=?, unit_price=?, markup_price=?,
+             stock_quantity=?, sizes_available=?, image_url=?, is_active=? WHERE id=?'
+        );
+        $stmt->bind_param(
+            'ssssddissii',
+            $sku,
+            $name,
+            $desc,
+            $category,
+            $price,
+            $markup,
+            $stock,
+            $sizesStr,
+            $image,
+            $active,
+            $id
+        );
+    }
 } else {
-    $stmt = $conn->prepare(
-        'INSERT INTO products (sku, name, description, category, unit_price, markup_price, stock_quantity, sizes_available, image_url, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    );
-    $stmt->bind_param(
-        'ssssddissi',
-        $sku,
-        $name,
-        $desc,
-        $category,
-        $price,
-        $markup,
-        $stock,
-        $sizesStr,
-        $image,
-        $active
-    );
+    if ($hasSizeStockCol) {
+        $stmt = $conn->prepare(
+            'INSERT INTO products (sku, name, description, category, unit_price, markup_price, stock_quantity, size_stock, sizes_available, image_url, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->bind_param(
+            'ssssddisssi',
+            $sku,
+            $name,
+            $desc,
+            $category,
+            $price,
+            $markup,
+            $stock,
+            $sizeStockJson,
+            $sizesStr,
+            $image,
+            $active
+        );
+    } else {
+        $stmt = $conn->prepare(
+            'INSERT INTO products (sku, name, description, category, unit_price, markup_price, stock_quantity, sizes_available, image_url, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->bind_param(
+            'ssssddissi',
+            $sku,
+            $name,
+            $desc,
+            $category,
+            $price,
+            $markup,
+            $stock,
+            $sizesStr,
+            $image,
+            $active
+        );
+    }
 }
 
 $ok = $stmt->execute();

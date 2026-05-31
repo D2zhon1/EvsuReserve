@@ -227,6 +227,32 @@
   color: #fff;
   border-color: var(--maroon);
 }
+.size-btn.size-required {
+  animation: size-pulse 0.5s ease 2;
+  border-color: #dc2626;
+}
+@keyframes size-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15); }
+}
+.size-btn.selected .size-stock-qty {
+  color: rgba(255, 255, 255, 0.9);
+}
+.size-btn.size-oos {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.size-btn .size-label {
+  font-weight: 700;
+}
+.size-btn .size-stock-qty {
+  display: block;
+  font-size: .65rem;
+  font-weight: 500;
+  opacity: 0.85;
+  line-height: 1.1;
+}
 
 /* Add to cart button */
 .btn-add-cart {
