@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/product_sizes.php';
 
 $user_name  = $_SESSION['user_name'] ?? 'Admin User';
 $first_name = explode(' ', $user_name)[0];
@@ -9,16 +10,23 @@ session_write_close();
 
 $products = [];
 $res = $conn->query(
-    'SELECT id, sku, name, description, category, unit_price, markup_price, stock_quantity, sizes_available, image_url, is_active
+    'SELECT id, sku, name, description, category, unit_price, markup_price, stock_quantity, size_stock, sizes_available, image_url, is_active
      FROM products
      ORDER BY created_at DESC, id DESC'
 );
 if ($res) {
     while ($row = $res->fetch_assoc()) {
+        $sizeStock = evsu_parse_size_stock($row['size_stock'] ?? null);
         $sizes = array_filter(array_map('trim', explode(',', (string) ($row['sizes_available'] ?? ''))));
+        if ($sizeStock !== []) {
+            $sizes = array_keys($sizeStock);
+        }
         $row['price'] = (float) ($row['unit_price'] ?? 0);
         $row['markup_price'] = isset($row['markup_price']) ? (float) $row['markup_price'] : (float) $row['price'];
-        $row['stock_quantity'] = (int) ($row['stock_quantity'] ?? 0);
+        $row['stock_quantity'] = $sizeStock !== []
+            ? evsu_size_stock_total($sizeStock)
+            : (int) ($row['stock_quantity'] ?? 0);
+        $row['size_stock'] = $sizeStock;
         $row['is_active'] = !empty($row['is_active']);
         $row['sizes_available'] = array_values($sizes);
         unset($row['unit_price']);
@@ -239,9 +247,20 @@ $categories = [
                 <td style="font-size:.88rem; font-weight:600;">₱<?= number_format($p['markup_price'], 2) ?></td>
                 <!-- Stock -->
                 <td>
-                  <span class="stock-val <?= $low_stock ? 'stock-low' : '' ?>">
-                    <?= $p['stock_quantity'] ?>
-                  </span>
+                  <?php if (!empty($p['size_stock'])): ?>
+                    <div class="size-stock-list">
+                      <?php foreach ($p['size_stock'] as $sz => $sq): ?>
+                        <span class="size-stock-chip <?= $sq < 10 ? 'stock-low' : '' ?>">
+                          <?= htmlspecialchars($sz) ?>: <?= (int) $sq ?>
+                        </span>
+                      <?php endforeach; ?>
+                    </div>
+                    <span class="stock-total-hint">Total: <?= (int) $p['stock_quantity'] ?></span>
+                  <?php else: ?>
+                    <span class="stock-val <?= $low_stock ? 'stock-low' : '' ?>">
+                      <?= $p['stock_quantity'] ?>
+                    </span>
+                  <?php endif; ?>
                 </td>
                 <!-- Status -->
                 <td>
@@ -342,7 +361,7 @@ $categories = [
           <label class="form-label" for="form-markup">Markup Price (₱)</label>
           <input type="number" id="form-markup" name="markup_price" class="form-input" min="0" step="0.01" placeholder="0.00"/>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="general-stock-wrap">
           <label class="form-label" for="form-stock">Stock Qty</label>
           <input type="number" id="form-stock" name="stock_quantity" class="form-input" min="0" placeholder="0"/>
         </div>
@@ -354,15 +373,33 @@ $categories = [
         <input type="url" id="form-image" name="image_url" class="form-input" placeholder="https://…"/>
       </div>
 
-      <!-- Sizes -->
+      <!-- Sizes + per-size stock -->
       <div class="form-group">
-        <label class="form-label">Sizes (for uniforms)</label>
-        <div class="size-input-row">
-          <input type="text" id="size-input" class="form-input" placeholder="e.g. S, M, L, XL"
-                 onkeydown="if(event.key==='Enter'){event.preventDefault();addSize();}"/>
-          <button type="button" class="btn-outline" onclick="addSize()">Add</button>
+        <label class="form-label">Sizes &amp; stock (uniforms)</label>
+        <p class="field-hint">Add S, M, L, XL and set how many pieces are in stock for each size.</p>
+        <div class="size-preset-row">
+          <?php foreach (['S', 'M', 'L', 'XL'] as $preset): ?>
+            <button type="button" class="btn-outline btn-size-preset" onclick="addSizePreset('<?= $preset ?>')"><?= $preset ?></button>
+          <?php endforeach; ?>
         </div>
-        <div class="size-tags" id="size-tags"></div>
+        <div class="size-input-row">
+          <input type="text" id="size-input" class="form-input" placeholder="Other size (e.g. 2XL)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();addSize();}"/>
+          <button type="button" class="btn-outline" onclick="addSize()">Add Size</button>
+        </div>
+        <div class="size-stock-table-wrap" id="size-stock-table-wrap" style="display:none;">
+          <table class="size-stock-table">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Stock Qty</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="size-stock-rows"></tbody>
+          </table>
+          <p class="size-stock-total">Total stock: <strong id="size-stock-total">0</strong></p>
+        </div>
         <input type="hidden" id="form-sizes" name="sizes_available"/>
       </div>
 

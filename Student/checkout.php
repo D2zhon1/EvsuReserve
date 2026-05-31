@@ -3,6 +3,7 @@ session_start();
 
 require_once __DIR__ . '/../database.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/product_sizes.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: student_cart.php');
@@ -49,52 +50,34 @@ $chk->close();
 $conn->begin_transaction();
 
 try {
-    // Lock product rows and verify enough stock before creating the order.
-    $stock_stmt = $conn->prepare('SELECT stock_quantity FROM products WHERE id = ? FOR UPDATE');
-    $deduct_stmt = $conn->prepare(
-        'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?'
-    );
-
     foreach ($cart_items as $item) {
-        $pid = (int) $item['product_id'];
-        $qty = (int) $item['quantity'];
-
-        $stock_stmt->bind_param('i', $pid);
-        $stock_stmt->execute();
-        $stock_res = $stock_stmt->get_result()->fetch_assoc();
-        $current_stock = (int) ($stock_res['stock_quantity'] ?? 0);
-
-        if ($current_stock < $qty) {
+        $pid   = (int) $item['product_id'];
+        $qty   = (int) $item['quantity'];
+        $size  = (string) ($item['size'] ?? '');
+        $stock = evsu_get_product_size_stock($conn, $pid, $size);
+        if ($stock['size_qty'] < $qty) {
+            $label = $size !== '' ? " (size {$size})" : '';
             throw new RuntimeException(
-                $item['product_name'] . ' does not have enough stock. Available: ' . $current_stock
+                $item['product_name'] . $label . ' does not have enough stock. Available: ' . $stock['size_qty']
             );
-        }
-
-        $deduct_stmt->bind_param('iii', $qty, $pid, $qty);
-        $deduct_stmt->execute();
-        if ($deduct_stmt->affected_rows <= 0) {
-            throw new RuntimeException('Failed to reserve stock for ' . $item['product_name']);
         }
     }
 
-    $stock_stmt->close();
-    $deduct_stmt->close();
-
-    $stmt = $conn->prepare(
-        'INSERT INTO orders (order_number, user_id, total_amount, status, payment_status, notes)
-         VALUES (?, ?, ?, \'pending\', \'pending\', ?)'
-    );
+    if (function_exists('evsu_column_exists') && evsu_column_exists($conn, 'orders', 'stock_deducted')) {
+        $stmt = $conn->prepare(
+            'INSERT INTO orders (order_number, user_id, total_amount, status, payment_status, notes, stock_deducted)
+             VALUES (?, ?, ?, \'pending\', \'pending\', ?, 0)'
+        );
+    } else {
+        $stmt = $conn->prepare(
+            'INSERT INTO orders (order_number, user_id, total_amount, status, payment_status, notes)
+             VALUES (?, ?, ?, \'pending\', \'pending\', ?)'
+        );
+    }
     $stmt->bind_param('sids', $order_number, $user_id, $total, $notes);
     $stmt->execute();
     $order_id = (int) $conn->insert_id;
     $stmt->close();
-
-    if (function_exists('evsu_column_exists') && evsu_column_exists($conn, 'orders', 'stock_deducted')) {
-        $flag_stmt = $conn->prepare('UPDATE orders SET stock_deducted = 1 WHERE id = ?');
-        $flag_stmt->bind_param('i', $order_id);
-        $flag_stmt->execute();
-        $flag_stmt->close();
-    }
 
     $item_stmt = $conn->prepare(
         'INSERT INTO order_items (order_id, product_id, product_name, size, quantity, unit_price, subtotal)
@@ -112,6 +95,22 @@ try {
         $item_stmt->execute();
     }
     $item_stmt->close();
+
+    foreach ($cart_items as $item) {
+        evsu_deduct_product_stock(
+            $conn,
+            (int) $item['product_id'],
+            (int) $item['quantity'],
+            (string) ($item['size'] ?? '')
+        );
+    }
+
+    if (function_exists('evsu_column_exists') && evsu_column_exists($conn, 'orders', 'stock_deducted')) {
+        $flag_stmt = $conn->prepare('UPDATE orders SET stock_deducted = 1 WHERE id = ?');
+        $flag_stmt->bind_param('i', $order_id);
+        $flag_stmt->execute();
+        $flag_stmt->close();
+    }
 
     $pay_method = ($payment_method === 'online') ? 'GCash' : 'Cash';
     $pay_code   = 'PAY-' . str_pad((string) random_int(1, 9999), 3, '0', STR_PAD_LEFT);

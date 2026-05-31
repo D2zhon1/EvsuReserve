@@ -6,6 +6,7 @@ session_start();
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/product_sizes.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request.']);
@@ -29,6 +30,19 @@ if (!$product_id || !$product_name || $unit_price <= 0) {
     exit;
 }
 
+$size = strtoupper($size);
+$stockInfo = evsu_get_product_size_stock($conn, $product_id, $size);
+$bySize = $stockInfo['by_size'];
+if ($bySize !== []) {
+    if ($size === '') {
+        echo json_encode(['success' => false, 'message' => 'Please select a size.']);
+        exit;
+    }
+    $available = (int) ($bySize[$size] ?? 0);
+} else {
+    $available = (int) $stockInfo['total'];
+}
+
 try {
     $pdo = evsu_pdo_connect();
 
@@ -38,6 +52,15 @@ try {
     );
     $stmt->execute([$user_id, $product_id, $size]);
     $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $inCart = $existing ? (int) $existing['quantity'] : 0;
+    if ($inCart + $quantity > $available) {
+        $msg = $bySize !== [] && $size !== ''
+            ? "Only {$available} left in size {$size}."
+            : "Only {$available} left in stock.";
+        echo json_encode(['success' => false, 'message' => $msg]);
+        exit;
+    }
 
     if ($existing) {
         $pdo->prepare('UPDATE cart_items SET quantity = quantity + ? WHERE id = ?')
@@ -56,5 +79,7 @@ try {
 
     echo json_encode(['success' => true, 'cart_count' => $cart_count]);
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'Database error.']);
+    echo json_encode(['success' => false, 'message' => 'Could not update cart. Please try again.']);
+} catch (Throwable $e) {
+    echo json_encode(['success' => false, 'message' => 'Could not add to cart. Please try again.']);
 }

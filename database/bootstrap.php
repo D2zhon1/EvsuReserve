@@ -127,6 +127,7 @@ function evsu_run_schema(mysqli $db): void
             unit_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             markup_price DECIMAL(10,2) NULL,
             stock_quantity INT NOT NULL DEFAULT 0,
+            size_stock TEXT NULL,
             sizes_available VARCHAR(255) NULL,
             image_url VARCHAR(500) NULL,
             is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -268,6 +269,10 @@ function evsu_run_migrations(mysqli $db): void
                 'ALTER TABLE orders ADD COLUMN stock_deducted TINYINT(1) NOT NULL DEFAULT 0 AFTER payment_status'
             );
         }
+    }
+
+    if (evsu_table_exists($db, 'products') && !evsu_column_exists($db, 'products', 'size_stock')) {
+        $db->query('ALTER TABLE products ADD COLUMN size_stock TEXT NULL AFTER stock_quantity');
     }
 }
 

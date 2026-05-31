@@ -3,6 +3,7 @@ session_start();
 
 require_once __DIR__ . '/../database.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/product_sizes.php';
 
 $ctx        = evsu_student_init($conn);
 $first_name = $ctx['first_name'];
@@ -22,16 +23,26 @@ $category_labels = [
 
 $products = [];
 $res = $conn->query(
-    'SELECT id, name, description, category, unit_price AS price, stock_quantity,
-            sizes_available, COALESCE(image_url, \'\') AS image_url
+    'SELECT id, name, description, category,
+            COALESCE(NULLIF(markup_price, 0), unit_price) AS price,
+            stock_quantity, size_stock, sizes_available,
+            COALESCE(image_url, \'\') AS image_url
      FROM products WHERE is_active = 1 ORDER BY name'
 );
 if ($res) {
     while ($row = $res->fetch_assoc()) {
+        $sizeStock = evsu_parse_size_stock($row['size_stock'] ?? null);
         $row['price'] = (float) $row['price'];
-        $row['stock_quantity'] = (int) $row['stock_quantity'];
+        $row['stock_quantity'] = $sizeStock !== []
+            ? evsu_size_stock_total($sizeStock)
+            : (int) $row['stock_quantity'];
+        $row['size_stock'] = $sizeStock;
         $sizes = trim($row['sizes_available'] ?? '');
-        $row['sizes_available'] = $sizes !== '' ? explode(',', $sizes) : [];
+        $sizesList = $sizes !== '' ? array_map('trim', explode(',', $sizes)) : [];
+        if ($sizeStock !== []) {
+            $sizesList = array_keys($sizeStock);
+        }
+        $row['sizes_available'] = $sizesList;
         $products[] = $row;
     }
 }
@@ -196,12 +207,14 @@ $cart_count = $ctx['cart_count'];
       <div class="products-grid" id="products-grid">
         <?php foreach ($filtered as $product):
           $cat_label = $category_labels[$product['category']] ?? $product['category'];
+          $sizeStock = $product['size_stock'] ?? [];
           $stock_qty = (int) ($product['stock_quantity'] ?? 0);
           $in_stock  = $stock_qty > 0;
           $is_low_stock = $stock_qty > 0 && $stock_qty <= 5;
           $has_sizes = !empty($product['sizes_available']);
+          $sizeStockJson = json_encode($sizeStock, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         ?>
-        <div class="product-card" data-id="<?= $product['id'] ?>">
+        <div class="product-card" data-id="<?= $product['id'] ?>" data-has-sizes="<?= $has_sizes ? '1' : '0' ?>">
 
           <!-- Image area -->
           <div class="product-img-wrap">
@@ -248,14 +261,23 @@ $cart_count = $ctx['cart_count'];
 
             <!-- Size selector -->
             <?php if ($has_sizes): ?>
-              <div class="size-selector">
-                <?php foreach ($product['sizes_available'] as $size): ?>
+              <div class="size-selector" data-product="<?= $product['id'] ?>">
+                <?php foreach ($product['sizes_available'] as $size):
+                  $szKey = strtoupper(trim($size));
+                  $szQty = $sizeStock !== [] ? (int) ($sizeStock[$szKey] ?? 0) : $stock_qty;
+                  $szOos = $szQty <= 0;
+                ?>
                   <button type="button"
-                          class="size-btn"
+                          class="size-btn <?= $szOos ? 'size-oos' : '' ?>"
                           data-product="<?= $product['id'] ?>"
-                          data-size="<?= htmlspecialchars($size) ?>"
+                          data-size="<?= htmlspecialchars($szKey) ?>"
+                          data-stock="<?= $szQty ?>"
+                          <?= $szOos ? 'disabled' : '' ?>
                           onclick="selectSize(this)">
-                    <?= htmlspecialchars($size) ?>
+                    <span class="size-label"><?= htmlspecialchars($szKey) ?></span>
+                    <?php if ($sizeStock !== []): ?>
+                      <span class="size-stock-qty"><?= $szQty ?></span>
+                    <?php endif; ?>
                   </button>
                 <?php endforeach; ?>
               </div>
@@ -265,7 +287,10 @@ $cart_count = $ctx['cart_count'];
             <button
               class="btn-add-cart <?= !$in_stock ? 'btn-disabled' : '' ?>"
               <?= !$in_stock ? 'disabled' : '' ?>
-              onclick="addToCart(<?= $product['id'] ?>, '<?= htmlspecialchars($product['name']) ?>', <?= $product['price'] ?>, <?= $has_sizes ? 'true' : 'false' ?>)"
+              data-product-name="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>"
+              data-price="<?= (float) $product['price'] ?>"
+              data-size-stock="<?= $sizeStockJson ?>"
+              onclick="addToCart(this)"
             >
               <?php if ($in_stock): ?>
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
