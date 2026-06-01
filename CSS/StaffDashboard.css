@@ -82,6 +82,27 @@
 .stock-warning  { background: #fff7ed; color: #c2410c; }
 .stock-critical { background: #fee2e2; color: #b91c1c; }
 
+.panel-low-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-top: .35rem;
+}
+.panel-size-chip {
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .12rem .45rem;
+  border-radius: 6px;
+}
+.panel-size-chip.stock-warning {
+  background: #fff7ed;
+  color: #c2410c;
+}
+.panel-size-chip.stock-critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 /* ── Warning accent on card header ── */
 .orders-card-header-warn {
   border-left-color: #f97316 !important;

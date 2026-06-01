@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/product_sizes.php';
 
 $user_name  = $_SESSION['user_name'] ?? 'Staff User';
 $first_name = explode(' ', $user_name)[0];
@@ -10,14 +11,19 @@ $products = [];
 $res = $conn->query(
     'SELECT id, name, category, unit_price AS price,
             COALESCE(markup_price, unit_price * 1.2) AS markup_price,
-            stock_quantity, is_active
+            stock_quantity, size_stock, is_active
      FROM products ORDER BY name'
 );
 if ($res) {
     while ($row = $res->fetch_assoc()) {
+        $sizeStock = evsu_parse_size_stock($row['size_stock'] ?? null);
         $row['price'] = (float) $row['price'];
         $row['markup_price'] = (float) $row['markup_price'];
-        $row['stock_quantity'] = (int) $row['stock_quantity'];
+        $row['stock_quantity'] = $sizeStock !== []
+            ? evsu_size_stock_total($sizeStock)
+            : (int) $row['stock_quantity'];
+        $row['size_stock'] = $sizeStock;
+        $row['low_sizes'] = evsu_low_stock_sizes($sizeStock);
         $row['is_active'] = (bool) $row['is_active'];
         $products[] = $row;
     }
@@ -39,8 +45,14 @@ if ($res) {
 }
 
 // ── Computed values (mirrors React logic) ─────────────────────────────────
-$low_stock = array_filter($products, fn($p) => ($p['stock_quantity'] ?? 0) < 10);
-$low_stock = array_values($low_stock);
+$low_stock = array_values(array_filter(
+    $products,
+    static fn($p) => evsu_product_needs_low_stock_alert(
+        (int) ($p['stock_quantity'] ?? 0),
+        $p['size_stock'] ?? [],
+        evsu_low_stock_threshold()
+    )
+));
 
 $active_orders = array_filter($orders, fn($o) => !in_array($o['status'], ['completed', 'cancelled']));
 $active_orders = array_values($active_orders);
@@ -345,18 +357,37 @@ $status_config = [
         <?php else: ?>
           <div class="panel-list">
             <?php foreach ($low_stock as $product):
-              $critical = ($product['stock_quantity'] ?? 0) <= 3;
+              $lowSizes = $product['low_sizes'] ?? [];
+              $sizeStock = $product['size_stock'] ?? [];
+              if ($lowSizes === [] && $sizeStock === []) {
+                  $lowSizes = ['Total' => (int) ($product['stock_quantity'] ?? 0)];
+              }
+              $minQty = $lowSizes !== [] ? min($lowSizes) : (int) ($product['stock_quantity'] ?? 0);
+              $critical = $minQty <= 3;
               $cat_label = ucwords(str_replace('_', ' ', $product['category']));
             ?>
             <div class="panel-row">
               <div class="panel-row-left">
                 <p class="panel-row-title"><?= htmlspecialchars($product['name']) ?></p>
                 <p class="panel-row-sub"><?= htmlspecialchars($cat_label) ?></p>
+                <?php if ($sizeStock !== [] && $lowSizes !== []): ?>
+                  <div class="panel-low-sizes">
+                    <?php foreach ($lowSizes as $sz => $sq): ?>
+                      <span class="panel-size-chip <?= $sq <= 3 ? 'stock-critical' : 'stock-warning' ?>">
+                        <?= htmlspecialchars($sz) ?>: <?= (int) $sq ?>
+                      </span>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
               </div>
               <div class="panel-row-right">
-                <span class="stock-alert <?= $critical ? 'stock-critical' : 'stock-warning' ?>">
-                  <?= $product['stock_quantity'] ?> left
-                </span>
+                <?php if ($sizeStock !== [] && $lowSizes !== []): ?>
+                  <span class="stock-alert <?= $critical ? 'stock-critical' : 'stock-warning' ?>">Low sizes</span>
+                <?php else: ?>
+                  <span class="stock-alert <?= $critical ? 'stock-critical' : 'stock-warning' ?>">
+                    <?= (int) ($product['stock_quantity'] ?? 0) ?> left
+                  </span>
+                <?php endif; ?>
               </div>
             </div>
             <?php endforeach; ?>

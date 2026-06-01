@@ -210,7 +210,12 @@ $cart_count = $ctx['cart_count'];
           $sizeStock = $product['size_stock'] ?? [];
           $stock_qty = (int) ($product['stock_quantity'] ?? 0);
           $in_stock  = $stock_qty > 0;
-          $is_low_stock = $stock_qty > 0 && $stock_qty <= 5;
+          $studentLowThreshold = 5;
+          $lowSizes = evsu_low_stock_sizes($sizeStock, $studentLowThreshold);
+          $is_low_stock = $stock_qty > 0 && (
+              ($sizeStock !== [] && $lowSizes !== [])
+              || ($sizeStock === [] && $stock_qty <= $studentLowThreshold)
+          );
           $has_sizes = !empty($product['sizes_available']);
           $sizeStockJson = json_encode($sizeStock, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         ?>
@@ -251,6 +256,8 @@ $cart_count = $ctx['cart_count'];
               <span class="product-stock <?= !$in_stock ? 'stock-out' : ($is_low_stock ? 'stock-low' : 'stock-ok') ?>">
                 <?php if (!$in_stock): ?>
                   Out of stock
+                <?php elseif ($is_low_stock && $lowSizes !== []): ?>
+                  Low: <?= htmlspecialchars(evsu_format_low_sizes_text($lowSizes)) ?>
                 <?php elseif ($is_low_stock): ?>
                   Low stock (<?= $stock_qty ?> left)
                 <?php else: ?>
@@ -266,9 +273,11 @@ $cart_count = $ctx['cart_count'];
                   $szKey = strtoupper(trim($size));
                   $szQty = $sizeStock !== [] ? (int) ($sizeStock[$szKey] ?? 0) : $stock_qty;
                   $szOos = $szQty <= 0;
+                  $szLow = !$szOos && $szQty <= $studentLowThreshold;
                 ?>
                   <button type="button"
-                          class="size-btn <?= $szOos ? 'size-oos' : '' ?>"
+                          class="size-btn <?= $szOos ? 'size-oos' : ($szLow ? 'size-low' : '') ?>"
+                          title="<?= $szLow ? 'Low stock' : ($szOos ? 'Out of stock' : '') ?>"
                           data-product="<?= $product['id'] ?>"
                           data-size="<?= htmlspecialchars($szKey) ?>"
                           data-stock="<?= $szQty ?>"

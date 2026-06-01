@@ -214,7 +214,10 @@ $categories = [
             <tbody>
               <?php foreach ($products as $p):
                 $cat_label = $categories[$p['category']] ?? ucfirst($p['category']);
-                $low_stock  = $p['stock_quantity'] < 10;
+                $low_stock  = evsu_product_needs_low_stock_alert(
+                    (int) $p['stock_quantity'],
+                    $p['size_stock'] ?? []
+                );
               ?>
               <tr data-name="<?= strtolower(htmlspecialchars($p['name'])) ?>"
                   data-category="<?= strtolower(htmlspecialchars($p['category'])) ?>">

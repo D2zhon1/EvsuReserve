@@ -2,6 +2,9 @@
 session_start();
 
 require_once __DIR__ . '/../database.php';
+require_once __DIR__ . '/../includes/product_sizes.php';
+
+$lowStockThreshold = evsu_low_stock_threshold();
 
 $user_name  = $_SESSION['user_name'] ?? 'Staff User';
 $first_name = explode(' ', $user_name)[0];
@@ -26,7 +29,7 @@ $total_revenue      = (float) ($stats['total_revenue'] ?? 0);
 
 $total_students = (int) $conn->query("SELECT COUNT(*) AS c FROM users WHERE role = 'student'")->fetch_assoc()['c'];
 
-$low_stock_items = (int) $conn->query('SELECT COUNT(*) AS c FROM products WHERE stock_quantity < 10 AND is_active = 1')->fetch_assoc()['c'];
+$low_stock_items = 0;
 
 $recent_orders = [];
 $res = $conn->query(
@@ -47,15 +50,34 @@ if ($res) {
 
 $low_stock_products = [];
 $res = $conn->query(
-    "SELECT name, COALESCE(sku, CONCAT('SKU-', id)) AS sku, stock_quantity AS stock
-     FROM products WHERE stock_quantity < 10 AND is_active = 1 ORDER BY stock_quantity ASC LIMIT 10"
+    "SELECT id, name, COALESCE(sku, CONCAT('SKU-', id)) AS sku, stock_quantity, size_stock
+     FROM products WHERE is_active = 1 ORDER BY name"
 );
 if ($res) {
     while ($row = $res->fetch_assoc()) {
-        $row['stock'] = (int) $row['stock'];
-        $row['threshold'] = 10;
-        $low_stock_products[] = $row;
+        $sizeStock = evsu_parse_size_stock($row['size_stock'] ?? null);
+        $stock = $sizeStock !== []
+            ? evsu_size_stock_total($sizeStock)
+            : (int) ($row['stock_quantity'] ?? 0);
+        $lowSizes = evsu_low_stock_sizes($sizeStock, $lowStockThreshold);
+
+        if (!evsu_product_needs_low_stock_alert($stock, $sizeStock, $lowStockThreshold)) {
+            continue;
+        }
+
+        $low_stock_items++;
+        $low_stock_products[] = [
+            'name'       => $row['name'],
+            'sku'        => $row['sku'],
+            'stock'      => $stock,
+            'size_stock' => $sizeStock,
+            'low_sizes'  => $lowSizes,
+            'threshold'  => $lowStockThreshold,
+            'sort_qty'   => $lowSizes !== [] ? min($lowSizes) : $stock,
+        ];
     }
+    usort($low_stock_products, static fn($a, $b) => $a['sort_qty'] <=> $b['sort_qty']);
+    $low_stock_products = array_slice($low_stock_products, 0, 10);
 }
 
 $status_config = [
@@ -407,17 +429,32 @@ $payment_config = [
             </div>
           <?php else: ?>
             <ul class="stock-list">
-              <?php foreach ($low_stock_products as $product): ?>
+              <?php foreach ($low_stock_products as $product):
+                $lowSizes = $product['low_sizes'] ?? [];
+                $hasSizeLow = $lowSizes !== [];
+                $minQty = $hasSizeLow ? min($lowSizes) : (int) $product['stock'];
+              ?>
                 <li class="stock-item">
                   <div class="stock-info">
                     <span class="stock-name"><?= htmlspecialchars($product['name']) ?></span>
                     <span class="stock-sku"><?= htmlspecialchars($product['sku']) ?></span>
+                    <?php if ($hasSizeLow): ?>
+                      <div class="stock-size-alerts">
+                        <?php foreach ($lowSizes as $sz => $sq): ?>
+                          <span class="stock-size-chip <?= $sq === 0 ? 'qty-zero' : ($sq <= 3 ? 'qty-critical' : 'qty-low') ?>">
+                            <?= htmlspecialchars($sz) ?>: <?= (int) $sq ?>
+                          </span>
+                        <?php endforeach; ?>
+                      </div>
+                    <?php endif; ?>
                   </div>
-                  <div class="stock-qty <?= $product['stock'] === 0 ? 'qty-zero' : 'qty-low' ?>">
-                    <?php if ($product['stock'] === 0): ?>
+                  <div class="stock-qty <?= $minQty === 0 ? 'qty-zero' : 'qty-low' ?>">
+                    <?php if ($hasSizeLow): ?>
+                      <span class="badge badge-orange">Low sizes</span>
+                    <?php elseif ($product['stock'] === 0): ?>
                       <span class="badge badge-red">Out of Stock</span>
                     <?php else: ?>
-                      <span class="badge badge-orange"><?= $product['stock'] ?> left</span>
+                      <span class="badge badge-orange"><?= (int) $product['stock'] ?> left</span>
                     <?php endif; ?>
                   </div>
                 </li>

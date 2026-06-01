@@ -243,6 +243,15 @@
   cursor: not-allowed;
   text-decoration: line-through;
 }
+.size-btn.size-low {
+  border-color: #f97316;
+  color: #c2410c;
+  background: #fff7ed;
+}
+.size-btn.size-low .size-stock-qty {
+  color: #c2410c;
+  font-weight: 700;
+}
 .size-btn .size-label {
   font-weight: 700;
 }

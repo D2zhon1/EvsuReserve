@@ -41,6 +41,68 @@ function evsu_size_stock_total(array $map): int
     return array_sum($map);
 }
 
+/** Default threshold for staff low-stock alerts. */
+function evsu_low_stock_threshold(): int
+{
+    return 10;
+}
+
+/** Per-size quantities below threshold (e.g. S => 5). */
+function evsu_low_stock_sizes(array $sizeStock, int $threshold = 0): array
+{
+    if ($threshold <= 0) {
+        $threshold = evsu_low_stock_threshold();
+    }
+    $low = [];
+    foreach ($sizeStock as $size => $qty) {
+        if ((int) $qty < $threshold) {
+            $low[strtoupper(trim((string) $size))] = (int) $qty;
+        }
+    }
+    return evsu_sort_size_keys($low);
+}
+
+function evsu_sort_size_keys(array $map): array
+{
+    $order = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+    uksort($map, static function (string $a, string $b) use ($order): int {
+        $ia = array_search($a, $order, true);
+        $ib = array_search($b, $order, true);
+        $ia = $ia === false ? 999 : $ia;
+        $ib = $ib === false ? 999 : $ib;
+        if ($ia === $ib) {
+            return strcmp($a, $b);
+        }
+        return $ia <=> $ib;
+    });
+    return $map;
+}
+
+/** Whether the product should appear in a low-stock alert list. */
+function evsu_product_needs_low_stock_alert(int $stockQty, array $sizeStock, int $threshold = 0): bool
+{
+    if ($threshold <= 0) {
+        $threshold = evsu_low_stock_threshold();
+    }
+    if ($sizeStock !== []) {
+        return evsu_low_stock_sizes($sizeStock, $threshold) !== [];
+    }
+    return $stockQty < $threshold;
+}
+
+/** Human-readable low-size summary: "S: 5 · M: 2". */
+function evsu_format_low_sizes_text(array $lowSizes): string
+{
+    if ($lowSizes === []) {
+        return '';
+    }
+    $parts = [];
+    foreach ($lowSizes as $size => $qty) {
+        $parts[] = $size . ': ' . $qty;
+    }
+    return implode(' · ', $parts);
+}
+
 function evsu_product_has_size_stock(mysqli $conn, int $productId): bool
 {
     if (!function_exists('evsu_column_exists') || !evsu_column_exists($conn, 'products', 'size_stock')) {
