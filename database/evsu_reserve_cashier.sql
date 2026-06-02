@@ -1,6 +1,6 @@
 -- =============================================================================
 -- EVSU Reserve — Cashier database schema & sample data
--- Database: evsu_reserve (matches login_page.php / cart.php)
+-- Database: evsu_reserve
 -- Import via phpMyAdmin or: mysql -u root < database/evsu_reserve_cashier.sql
 -- =============================================================================
 

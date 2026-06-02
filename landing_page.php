@@ -1,7 +1,5 @@
 <?php
-require_once __DIR__ . '/database/bootstrap.php';
 require_once __DIR__ . '/environment.php';
-evsu_bootstrap_database();
 ?>
 <!DOCTYPE html>
 <html lang="en">

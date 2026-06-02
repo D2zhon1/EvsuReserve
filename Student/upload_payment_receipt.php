@@ -61,7 +61,11 @@ if (!empty($_FILES['proof_of_payment']['name'])) {
 }
 
 if ($proof_url === null) {
-    $_SESSION['toast_msg']  = 'Please upload a valid receipt image.';
+    if (evsu_upload_failure_reason() === 'quota') {
+        $_SESSION['toast_msg'] = 'Upload storage is full (5 GB limit). Please contact an administrator.';
+    } else {
+        $_SESSION['toast_msg'] = 'Please upload a valid receipt image (JPEG, PNG, WebP, or GIF, max 5 MB).';
+    }
     $_SESSION['toast_type'] = 'error';
     header('Location: payment_receipt.php?payment_id=' . $payment_id);
     exit;
