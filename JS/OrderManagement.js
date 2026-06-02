@@ -121,7 +121,13 @@
         showToast(data && data.error ? data.error : 'Update failed', 'error');
       } else {
         if (data.status) selectEl.value = data.status;
-        showToast('Order ' + (record ? record.order_number : orderId) + ' updated to ' + (data.status || newStatus), 'success');
+        var msg = 'Order ' + (record ? record.order_number : orderId) + ' updated to ' + (data.status || newStatus);
+        if (data.status === 'completed' && typeof data.email_sent === 'boolean') {
+          msg += data.email_sent
+            ? '. Student notified by email.'
+            : '. Could not send email to student.';
+        }
+        showToast(msg, data.status === 'completed' && data.email_sent === false ? 'error' : 'success');
       }
     })
     .catch(function () {

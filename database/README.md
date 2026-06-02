@@ -15,6 +15,15 @@ Optional environment overrides: `EVSU_DB_HOST`, `EVSU_DB_USER`, `EVSU_DB_PASS`, 
 
 The app does **not** create the database or tables automatically. If MySQL is down or the database is missing, pages that need the database will show a connection error.
 
+### Order completion emails
+
+When staff sets an order to **Completed**, the student receives an email at their registered `@evsu.edu.ph` address.
+
+Copy `.env.example` to `.env` and configure mail (quote values that contain spaces, e.g. `MAIL_FROM_NAME="EVSU Reserve"`):
+
+- **`MAIL_DRIVER=log`** — writes to `storage/logs/mail.log` (local testing).
+- **`MAIL_DRIVER=smtp`** — sends via SMTP (Gmail, etc.).
+
 ## Tables
 
 | Table | Purpose |

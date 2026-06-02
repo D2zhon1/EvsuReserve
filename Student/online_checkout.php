@@ -99,9 +99,7 @@ $data = [
             "line_items" => $line_items,
 
             "payment_method_types" => [
-                "gcash",
-                "paymaya",
-                "card"
+                "gcash"
             ],
 
             "success_url" =>

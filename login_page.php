@@ -3,8 +3,14 @@ session_start();
 
 require_once __DIR__ . '/database.php';
 
-$login_error    = '';
-$login_success  = isset($_GET['registered']) ? 'Account created! Sign in with your email or student ID and password.' : '';
+$login_error   = '';
+$login_success = isset($_GET['registered'])
+    ? 'Account created! Sign in with your email or student ID and password.'
+    : '';
+
+if (isset($_GET['reset'])) {
+    $login_success = 'Password updated successfully. Sign in with your new password.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login    = trim($_POST['student_id'] ?? $_POST['email'] ?? '');
@@ -157,8 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </form>
 
       <div class="form-links">
-        <a href="forgot-password.php" class="link-maroon">Forgot Password ?</a>
-        <span>New ? <a href="register_page.php" class="link-maroon">Register</a></span>
+        <a href="forgot-password.php" class="link-maroon">Forgot Password?</a>
+        <span>New? <a href="register_page.php" class="link-maroon">Register</a></span>
       </div>
 
       <p class="terms-text">

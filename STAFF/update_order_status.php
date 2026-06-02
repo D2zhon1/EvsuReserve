@@ -4,6 +4,7 @@ header('Content-Type: application/json');
 
 require_once __DIR__ . '/../database.php';
 require_once __DIR__ . '/../includes/order_stock.php';
+require_once __DIR__ . '/../includes/order_notify.php';
 
 $raw   = file_get_contents('php://input');
 $input = json_decode($raw, true);
@@ -85,7 +86,20 @@ try {
         "Order {$order['order_number']} status: {$old_status} → {$status}"
     );
 
-    echo json_encode(['success' => true, 'status' => $status, 'payment_status' => $payment_status]);
+    $response = ['success' => true, 'status' => $status, 'payment_status' => $payment_status];
+
+    if ($status === 'completed' && $old_status !== 'completed') {
+        $response['email_sent'] = evsu_notify_student_order_completed($conn, $id);
+        evsu_log_activity(
+            $conn,
+            $response['email_sent'] ? 'Order Completion Email Sent' : 'Order Completion Email Failed',
+            $_SESSION['user_email'] ?? '',
+            $_SESSION['role'] ?? 'staff',
+            "Order {$order['order_number']}"
+        );
+    }
+
+    echo json_encode($response);
 } catch (Throwable $e) {
     $conn->rollback();
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
